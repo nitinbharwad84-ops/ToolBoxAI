@@ -4,20 +4,13 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { UserButton } from '@clerk/nextjs';
 import { useUser } from '@/hooks/useUser';
+import CreditMeter from '@/components/dashboard/CreditMeter';
 import {
-  LayoutDashboard,
-  FileText,
-  Flame,
-  Mail,
-  History,
-  CreditCard,
-  Settings,
-  Zap,
-  ChevronLeft,
-  ChevronRight,
+  LayoutDashboard, FileText, Flame, Mail, History,
+  CreditCard, Settings, Zap, ChevronLeft, ChevronRight, Menu, X,
 } from 'lucide-react';
-import { useState } from 'react';
-import { cn, formatCredits } from '@/lib/utils';
+import { useState, useEffect } from 'react';
+import { cn } from '@/lib/utils';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -33,18 +26,19 @@ export default function Sidebar() {
   const pathname = usePathname();
   const { user } = useUser();
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
-  const creditPercent = user ? Math.min((user.credits / 1000) * 100, 100) : 0;
-  const isLow = (user?.credits ?? 100) < 20;
+  // Close mobile drawer on route change
+  useEffect(() => { setMobileOpen(false); }, [pathname]);
 
-  return (
-    <aside
-      className={cn(
-        'flex flex-col h-screen sticky top-0 transition-all duration-300 border-r border-surface-300/50',
-        collapsed ? 'w-16' : 'w-64',
-        'bg-surface-100/80 backdrop-blur-xl'
-      )}
-    >
+  // Lock body scroll when mobile drawer is open
+  useEffect(() => {
+    document.body.style.overflow = mobileOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [mobileOpen]);
+
+  const sidebarContent = (
+    <>
       {/* Logo */}
       <div className="flex items-center gap-2 px-4 h-16 border-b border-surface-300/50">
         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center flex-shrink-0">
@@ -55,44 +49,27 @@ export default function Sidebar() {
             Toolbox<span className="gradient-text">AI</span>
           </span>
         )}
+        {/* Mobile close */}
+        <button onClick={() => setMobileOpen(false)} className="ml-auto lg:hidden p-1 rounded hover:bg-surface-200/50">
+          <X className="w-5 h-5 text-surface-500" />
+        </button>
       </div>
 
       {/* Credit Meter */}
       {!collapsed && user && (
-        <div className="mx-3 mt-4 p-3 rounded-lg glass-card">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium text-surface-500">Credits</span>
-            <span className={cn(
-              'text-sm font-bold',
-              isLow ? 'text-danger' : 'text-primary'
-            )}>
-              {formatCredits(user.credits)}
-            </span>
-          </div>
-          <div className="h-1.5 rounded-full bg-surface-300 overflow-hidden">
-            <div
-              className={cn(
-                'h-full rounded-full transition-all duration-500',
-                isLow
-                  ? 'bg-danger animate-pulse-glow'
-                  : 'bg-gradient-to-r from-primary to-accent'
-              )}
-              style={{ width: `${creditPercent}%` }}
-            />
-          </div>
-          {isLow && (
-            <p className="text-[10px] text-danger mt-1.5">⚠ Low credits — buy more or add your API key</p>
-          )}
-          <div className="flex items-center gap-1 mt-2">
-            <span className={cn(
-              'text-[10px] font-medium px-1.5 py-0.5 rounded-full',
-              user.plan === 'pro'
-                ? 'bg-accent/20 text-accent'
-                : 'bg-surface-300 text-surface-500'
-            )}>
-              {user.plan === 'pro' ? '✦ PRO' : 'FREE'}
-            </span>
-          </div>
+        <div className="mx-3 mt-4 p-3 rounded-lg glass-card space-y-2">
+          <CreditMeter credits={user.credits} plan={user.plan} />
+          <span className={cn(
+            'text-[10px] font-medium px-1.5 py-0.5 rounded-full inline-block',
+            user.plan === 'pro' ? 'bg-accent/20 text-accent' : 'bg-surface-300 text-surface-500'
+          )}>
+            {user.plan === 'pro' ? '✦ PRO' : 'FREE'}
+          </span>
+        </div>
+      )}
+      {collapsed && user && (
+        <div className="mx-2 mt-4 p-2">
+          <CreditMeter credits={user.credits} plan={user.plan} compact />
         </div>
       )}
 
@@ -101,14 +78,10 @@ export default function Sidebar() {
         {navItems.map(({ href, icon: Icon, label, pro }) => {
           const isActive = pathname === href;
           return (
-            <Link
-              key={href}
-              href={href}
+            <Link key={href} href={href}
               className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group',
-                isActive
-                  ? 'bg-primary/15 text-primary'
-                  : 'text-surface-500 hover:text-surface-700 hover:bg-surface-200/50',
+                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200',
+                isActive ? 'bg-primary/15 text-primary' : 'text-surface-500 hover:text-surface-700 hover:bg-surface-200/50',
                 collapsed && 'justify-center px-0'
               )}
             >
@@ -116,11 +89,7 @@ export default function Sidebar() {
               {!collapsed && (
                 <>
                   <span>{label}</span>
-                  {pro && (
-                    <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded bg-accent/20 text-accent">
-                      PRO
-                    </span>
-                  )}
+                  {pro && <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded bg-accent/20 text-accent">PRO</span>}
                 </>
               )}
             </Link>
@@ -128,32 +97,58 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* Bottom */}
+      {/* User */}
       <div className="p-3 border-t border-surface-300/50">
         <div className={cn('flex items-center', collapsed ? 'justify-center' : 'gap-3')}>
-          <UserButton
-            appearance={{
-              elements: { avatarBox: 'w-8 h-8' },
-            }}
-          />
+          <UserButton appearance={{ elements: { avatarBox: 'w-8 h-8' } }} />
           {!collapsed && user && (
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-surface-700 truncate">
-                {user.first_name ?? 'User'}
-              </p>
+              <p className="text-sm font-medium text-surface-700 truncate">{user.first_name ?? 'User'}</p>
               <p className="text-xs text-surface-500 truncate">{user.email}</p>
             </div>
           )}
         </div>
       </div>
+    </>
+  );
 
-      {/* Collapse Toggle */}
+  return (
+    <>
+      {/* Mobile Hamburger */}
       <button
-        onClick={() => setCollapsed(!collapsed)}
-        className="absolute -right-3 top-20 w-6 h-6 rounded-full bg-surface-200 border border-surface-300 flex items-center justify-center hover:bg-surface-300 transition-colors"
+        onClick={() => setMobileOpen(true)}
+        className="lg:hidden fixed top-4 left-4 z-50 w-10 h-10 rounded-lg bg-surface-200/80 backdrop-blur-sm border border-surface-300/50 flex items-center justify-center"
+        aria-label="Open menu"
       >
-        {collapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
+        <Menu className="w-5 h-5 text-surface-600" />
       </button>
-    </aside>
+
+      {/* Mobile Overlay */}
+      {mobileOpen && (
+        <div className="lg:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
+      )}
+
+      {/* Mobile Drawer */}
+      <aside className={cn(
+        'lg:hidden fixed inset-y-0 left-0 z-50 w-64 flex flex-col bg-surface-100/95 backdrop-blur-xl border-r border-surface-300/50 transition-transform duration-300',
+        mobileOpen ? 'translate-x-0' : '-translate-x-full'
+      )}>
+        {sidebarContent}
+      </aside>
+
+      {/* Desktop Sidebar */}
+      <aside className={cn(
+        'hidden lg:flex flex-col h-screen sticky top-0 transition-all duration-300 border-r border-surface-300/50 bg-surface-100/80 backdrop-blur-xl',
+        collapsed ? 'w-16' : 'w-64'
+      )}>
+        {sidebarContent}
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="absolute -right-3 top-20 w-6 h-6 rounded-full bg-surface-200 border border-surface-300 flex items-center justify-center hover:bg-surface-300 transition-colors"
+        >
+          {collapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
+        </button>
+      </aside>
+    </>
   );
 }

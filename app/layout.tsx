@@ -3,15 +3,35 @@ import { ClerkProvider } from '@clerk/nextjs';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'ToolboxAI — AI-Powered Productivity Tools',
+  title: {
+    default: 'ToolboxAI — AI-Powered Productivity Tools',
+    template: '%s — ToolboxAI',
+  },
   description: 'Summarize documents, roast resumes, and transform emails with AI. Free credits on signup.',
-  keywords: ['AI tools', 'document summarizer', 'resume analyzer', 'email transformer', 'productivity'],
+  keywords: ['AI tools', 'document summarizer', 'resume analyzer', 'email transformer', 'productivity', 'SaaS'],
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
   openGraph: {
     title: 'ToolboxAI — AI-Powered Productivity Tools',
-    description: 'Three AI-powered tools in one SaaS platform. Start free.',
+    description: 'Three AI-powered tools in one SaaS platform. Start free with 100 credits.',
     type: 'website',
+    siteName: 'ToolboxAI',
   },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'ToolboxAI — AI-Powered Productivity Tools',
+    description: 'Summarize docs, roast resumes, transform emails. Free to start.',
+  },
+  robots: { index: true, follow: true },
 };
+
+export function generateViewport() {
+  return {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 5,
+    themeColor: '#18181b',
+  };
+}
 
 export default function RootLayout({
   children,

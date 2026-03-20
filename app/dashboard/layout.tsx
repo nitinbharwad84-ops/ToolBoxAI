@@ -1,4 +1,11 @@
+import type { Metadata } from 'next';
 import Sidebar from '@/components/dashboard/Sidebar';
+
+export const metadata: Metadata = {
+  title: 'Dashboard — ToolboxAI',
+  description: 'Your AI productivity dashboard. Summarize documents, roast resumes, and transform emails.',
+  robots: { index: false, follow: false },
+};
 
 export default function DashboardLayout({
   children,

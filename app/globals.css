@@ -102,3 +102,39 @@ body {
 .animate-pulse-glow {
   animation: pulse-glow 2s ease-in-out infinite;
 }
+
+/* ── Mobile Responsive ────────────────────────────── */
+
+@media (max-width: 1024px) {
+  .glass-card {
+    border-radius: 10px;
+  }
+
+  /* Offset content for hamburger button on mobile */
+  main {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+}
+
+@media (max-width: 640px) {
+  body {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  input, textarea, select, button {
+    font-size: 16px; /* Prevent iOS zoom */
+  }
+
+  .glass-card {
+    border-radius: 8px;
+  }
+}
+
+/* ── Safe Area ────────────────────────────────────── */
+
+@supports (padding: env(safe-area-inset-bottom)) {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 16px);
+  }
+}
+

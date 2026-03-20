@@ -6,36 +6,12 @@ import { useHistory } from '@/hooks/useHistory';
 import { FileText, Flame, Mail, ArrowRight, Zap, TrendingUp, Clock } from 'lucide-react';
 import { formatCredits, formatRelativeTime, getToolIcon } from '@/lib/utils';
 import { cn } from '@/lib/utils';
+import StatsCard from '@/components/dashboard/StatsCard';
 
 const tools = [
-  {
-    name: 'Summarizer',
-    desc: 'Summarize documents, PDFs, and text instantly',
-    icon: FileText,
-    href: '/dashboard/summarizer',
-    cost: '10 cr',
-    color: 'from-blue-500/20 to-cyan-500/20',
-    iconColor: 'text-blue-400',
-  },
-  {
-    name: 'Resume Roaster',
-    desc: 'Get brutal, honest resume feedback',
-    icon: Flame,
-    href: '/dashboard/resume-roaster',
-    cost: '15 cr',
-    color: 'from-orange-500/20 to-red-500/20',
-    iconColor: 'text-orange-400',
-    pro: true,
-  },
-  {
-    name: 'Email Pacifier',
-    desc: 'Transform harsh emails into professional ones',
-    icon: Mail,
-    href: '/dashboard/email-pacifier',
-    cost: '5 cr',
-    color: 'from-emerald-500/20 to-teal-500/20',
-    iconColor: 'text-emerald-400',
-  },
+  { name: 'Summarizer', desc: 'Summarize documents, PDFs, and text instantly', icon: FileText, href: '/dashboard/summarizer', cost: '10 cr', color: 'from-blue-500/20 to-cyan-500/20', iconColor: 'text-blue-400' },
+  { name: 'Resume Roaster', desc: 'Get brutal, honest resume feedback', icon: Flame, href: '/dashboard/resume-roaster', cost: '15 cr', color: 'from-orange-500/20 to-red-500/20', iconColor: 'text-orange-400', pro: true },
+  { name: 'Email Pacifier', desc: 'Transform harsh emails into professional ones', icon: Mail, href: '/dashboard/email-pacifier', cost: '5 cr', color: 'from-emerald-500/20 to-teal-500/20', iconColor: 'text-emerald-400' },
 ];
 
 export default function DashboardPage() {
@@ -53,7 +29,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8 animate-fade-in">
       {/* Header */}
-      <div>
+      <div className="pl-12 lg:pl-0">
         <h1 className="text-2xl font-bold text-surface-800">
           Welcome{user?.first_name ? `, ${user.first_name}` : ''} 👋
         </h1>
@@ -62,44 +38,23 @@ export default function DashboardPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="glass-card p-5 flex items-center gap-4">
-          <div className="w-10 h-10 rounded-lg bg-primary/15 flex items-center justify-center">
-            <Zap className="w-5 h-5 text-primary" />
-          </div>
-          <div>
-            <p className="text-sm text-surface-500">Credits Available</p>
-            <p className={cn('text-xl font-bold', (user?.credits ?? 0) < 20 ? 'text-danger' : 'text-surface-800')}>
-              {formatCredits(user?.credits ?? 0)}
-            </p>
-          </div>
-        </div>
-        <div className="glass-card p-5 flex items-center gap-4">
-          <div className="w-10 h-10 rounded-lg bg-accent/15 flex items-center justify-center">
-            <TrendingUp className="w-5 h-5 text-accent" />
-          </div>
-          <div>
-            <p className="text-sm text-surface-500">Total Used</p>
-            <p className="text-xl font-bold text-surface-800">
-              {formatCredits(user?.total_credits_used ?? 0)}
-            </p>
-          </div>
-        </div>
-        <div className="glass-card p-5 flex items-center gap-4">
-          <div className="w-10 h-10 rounded-lg bg-emerald-500/15 flex items-center justify-center">
-            <Clock className="w-5 h-5 text-emerald-400" />
-          </div>
-          <div>
-            <p className="text-sm text-surface-500">Plan</p>
-            <p className="text-xl font-bold text-surface-800 flex items-center gap-2">
-              {user?.plan === 'pro' ? '✦ Pro' : 'Free'}
-              {user?.user_api_key_set && (
-                <span className="text-xs font-normal px-2 py-0.5 rounded-full bg-primary/15 text-primary">
-                  Own Key
-                </span>
-              )}
-            </p>
-          </div>
-        </div>
+        <StatsCard
+          icon={<Zap className="w-5 h-5 text-primary" />}
+          label="Credits Available"
+          value={formatCredits(user?.credits ?? 0)}
+          className={(user?.credits ?? 100) < 20 ? 'border-danger/30' : ''}
+        />
+        <StatsCard
+          icon={<TrendingUp className="w-5 h-5 text-accent" />}
+          label="Total Used"
+          value={formatCredits(user?.total_credits_used ?? 0)}
+        />
+        <StatsCard
+          icon={<Clock className="w-5 h-5 text-emerald-400" />}
+          label="Plan"
+          value={user?.plan === 'pro' ? '✦ Pro' : 'Free'}
+          trend={user?.user_api_key_set ? 'Own Key' : undefined}
+        />
       </div>
 
       {/* Low Credit Warning */}
@@ -108,9 +63,9 @@ export default function DashboardPage() {
           <span className="text-danger text-lg">⚠</span>
           <div className="flex-1">
             <p className="text-sm font-medium text-danger">Low on credits</p>
-            <p className="text-xs text-surface-500">Buy more credits or add your own API key in Settings to continue using tools for free.</p>
+            <p className="text-xs text-surface-500">Buy more credits or add your own API key in Settings to continue free.</p>
           </div>
-          <Link href="/dashboard/billing" className="text-sm font-medium text-primary hover:text-primary-hover transition-colors">
+          <Link href="/dashboard/billing" className="text-sm font-medium text-primary hover:text-primary-hover transition-colors whitespace-nowrap">
             Buy Credits →
           </Link>
         </div>
@@ -121,21 +76,15 @@ export default function DashboardPage() {
         <h2 className="text-lg font-semibold text-surface-800 mb-4">Quick Actions</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {tools.map((tool) => (
-            <Link
-              key={tool.name}
-              href={tool.href}
+            <Link key={tool.name} href={tool.href}
               className="glass-card p-5 group hover:border-primary/30 transition-all duration-300 hover:-translate-y-0.5"
             >
               <div className={cn('w-10 h-10 rounded-lg bg-gradient-to-br flex items-center justify-center mb-3', tool.color)}>
                 <tool.icon className={cn('w-5 h-5', tool.iconColor)} />
               </div>
               <div className="flex items-center gap-2 mb-1">
-                <h3 className="font-semibold text-surface-800 group-hover:text-primary transition-colors">
-                  {tool.name}
-                </h3>
-                {tool.pro && (
-                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-accent/20 text-accent">PRO</span>
-                )}
+                <h3 className="font-semibold text-surface-800 group-hover:text-primary transition-colors">{tool.name}</h3>
+                {tool.pro && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-accent/20 text-accent">PRO</span>}
               </div>
               <p className="text-sm text-surface-500 mb-3">{tool.desc}</p>
               <div className="flex items-center justify-between">
