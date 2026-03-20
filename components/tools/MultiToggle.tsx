@@ -9,10 +9,12 @@ interface MultiToggleProps<T extends string> {
 
 export default function MultiToggle<T extends string>({ options, value, onChange, size = 'sm' }: MultiToggleProps<T>) {
   return (
-    <div className="flex flex-wrap gap-1.5">
+    <div className="flex flex-wrap gap-1.5" role="radiogroup">
       {options.map((opt) => (
         <button
           key={opt.value}
+          role="radio"
+          aria-checked={value === opt.value}
           onClick={() => onChange(opt.value)}
           className={cn(
             'rounded-md font-medium transition-all',

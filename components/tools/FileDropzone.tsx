@@ -43,7 +43,7 @@ export default function FileDropzone({ accept = '.pdf,.xlsx,.xls', maxSizeMb, fi
           <p className="text-sm font-medium text-surface-700 truncate">{file.name}</p>
           <p className="text-xs text-surface-500">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
         </div>
-        <button onClick={() => onFileChange(null)} className="p-1 rounded hover:bg-surface-200/50">
+        <button onClick={() => onFileChange(null)} className="p-1 rounded hover:bg-surface-200/50" aria-label="Remove file">
           <X className="w-3.5 h-3.5 text-surface-500" />
         </button>
       </div>
@@ -61,7 +61,7 @@ export default function FileDropzone({ accept = '.pdf,.xlsx,.xls', maxSizeMb, fi
         disabled && 'opacity-50 cursor-not-allowed'
       )}
     >
-      <label className="cursor-pointer space-y-2">
+      <label className="cursor-pointer space-y-2" aria-label="Upload file">
         <Upload className="w-6 h-6 text-surface-400 mx-auto" />
         <p className="text-sm text-surface-600">
           <span className="text-primary font-medium">Upload</span> or drag & drop

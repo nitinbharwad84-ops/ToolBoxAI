@@ -4,6 +4,8 @@ import { getServiceSupabase } from '@/lib/supabase';
 import { calculateCreditCost } from '@/lib/credit-calculator';
 import { buildEmailPacifierPrompt } from '@/lib/prompt-builder';
 import { executeWithFallback } from '@/lib/ai-providers';
+import { rateLimit, rateLimitResponse } from '@/lib/rate-limit';
+import { sanitizeText, validateTweaks } from '@/lib/validate';
 import type { EmailPacifierTweaks } from '@/types';
 
 const DEFAULT_TWEAKS: EmailPacifierTweaks = {
@@ -23,6 +25,9 @@ export async function POST(req: Request) {
   const { userId: clerkId } = await auth();
   if (!clerkId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  const { allowed, resetIn } = rateLimit(clerkId, 'tool');
+  if (!allowed) return rateLimitResponse(resetIn);
+
   const supabase = getServiceSupabase();
 
   // Load user
@@ -36,8 +41,8 @@ export async function POST(req: Request) {
 
   // Parse input
   const body = await req.json();
-  const email = body.email?.trim();
-  const tweaks: EmailPacifierTweaks = { ...DEFAULT_TWEAKS, ...body.tweaks };
+  const email = sanitizeText(body.email);
+  const tweaks: EmailPacifierTweaks = { ...DEFAULT_TWEAKS, ...validateTweaks(body.tweaks) };
 
   if (!email) {
     return NextResponse.json({ error: 'EMPTY_INPUT', message: 'Please paste your email content.' }, { status: 400 });

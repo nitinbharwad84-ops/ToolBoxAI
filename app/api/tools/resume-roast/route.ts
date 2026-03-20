@@ -4,6 +4,8 @@ import { getServiceSupabase } from '@/lib/supabase';
 import { calculateCreditCost } from '@/lib/credit-calculator';
 import { buildResumeRoasterPrompt } from '@/lib/prompt-builder';
 import { executeWithFallback } from '@/lib/ai-providers';
+import { rateLimit, rateLimitResponse } from '@/lib/rate-limit';
+import { sanitizeText, validateTweaks } from '@/lib/validate';
 import type { ResumeRoasterTweaks } from '@/types';
 
 const DEFAULT_TWEAKS: ResumeRoasterTweaks = {
@@ -31,6 +33,9 @@ export async function POST(req: Request) {
   const { userId: clerkId } = await auth();
   if (!clerkId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  const { allowed, resetIn } = rateLimit(clerkId, 'tool');
+  if (!allowed) return rateLimitResponse(resetIn);
+
   const supabase = getServiceSupabase();
   const { data: user } = await supabase
     .from('users')
@@ -49,8 +54,8 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json();
-  const content = body.content?.trim();
-  const tweaks: ResumeRoasterTweaks = { ...DEFAULT_TWEAKS, ...body.tweaks };
+  const content = sanitizeText(body.content);
+  const tweaks: ResumeRoasterTweaks = { ...DEFAULT_TWEAKS, ...validateTweaks(body.tweaks) };
 
   if (!content) {
     return NextResponse.json({ error: 'EMPTY_INPUT', message: 'Please paste your resume content.' }, { status: 400 });

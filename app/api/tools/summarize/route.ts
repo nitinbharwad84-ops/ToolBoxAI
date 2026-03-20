@@ -4,6 +4,8 @@ import { getServiceSupabase } from '@/lib/supabase';
 import { calculateCreditCost } from '@/lib/credit-calculator';
 import { buildSummarizerPrompt } from '@/lib/prompt-builder';
 import { executeWithFallback } from '@/lib/ai-providers';
+import { rateLimit, rateLimitResponse } from '@/lib/rate-limit';
+import { sanitizeText, validateTweaks } from '@/lib/validate';
 import type { SummarizerTweaks } from '@/types';
 
 const DEFAULT_TWEAKS: SummarizerTweaks = {
@@ -26,6 +28,9 @@ export async function POST(req: Request) {
   const startTime = Date.now();
   const { userId: clerkId } = await auth();
   if (!clerkId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const { allowed, resetIn } = rateLimit(clerkId, 'tool');
+  if (!allowed) return rateLimitResponse(resetIn);
 
   const supabase = getServiceSupabase();
   const { data: user } = await supabase

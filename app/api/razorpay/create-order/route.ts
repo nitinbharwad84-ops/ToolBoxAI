@@ -2,10 +2,14 @@ import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { getRazorpayClient } from '@/lib/razorpay';
+import { rateLimit, rateLimitResponse } from '@/lib/rate-limit';
 
 export async function POST(req: Request) {
   const { userId: clerkId } = await auth();
   if (!clerkId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const { allowed, resetIn } = rateLimit(clerkId, 'payment');
+  if (!allowed) return rateLimitResponse(resetIn);
 
   const { packageId } = await req.json();
   const supabase = getServiceSupabase();

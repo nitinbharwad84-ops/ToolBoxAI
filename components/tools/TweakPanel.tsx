@@ -18,6 +18,8 @@ export default function TweakPanel({ creditCost, onReset, children, defaultOpen 
     <div className="glass-card overflow-hidden">
       <button
         onClick={() => setOpen(!open)}
+        aria-expanded={open}
+        aria-label={`Customize settings, ${creditCost} credits`}
         className="w-full flex items-center justify-between px-5 py-3 hover:bg-surface-200/30 transition-colors"
       >
         <div className="flex items-center gap-2">
@@ -38,6 +40,7 @@ export default function TweakPanel({ creditCost, onReset, children, defaultOpen 
             <button
               onClick={onReset}
               className="text-xs text-surface-500 hover:text-surface-700 transition-colors flex items-center gap-1"
+              aria-label="Reset to defaults"
             >
               <RotateCcw className="w-3 h-3" /> Reset
             </button>

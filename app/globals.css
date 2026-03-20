@@ -44,6 +44,27 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 16px;
+  padding: 8px 16px;
+  background: var(--color-primary);
+  color: white;
+  border-radius: 8px;
+  z-index: 100;
+  transition: top 0.2s;
+}
+
+.skip-link:focus {
+  top: 16px;
+}
+
 /* ── Utilities ─────────────────────────────────────── */
 
 .glass {
@@ -89,6 +110,15 @@ body {
 @keyframes pulse-glow {
   0%, 100% { box-shadow: 0 0 12px oklch(0.72 0.15 220 / 0.3); }
   50% { box-shadow: 0 0 24px oklch(0.72 0.15 220 / 0.6); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-shimmer {
+  animation: shimmer 1.5s ease-in-out infinite;
 }
 
 .animate-fade-in {
