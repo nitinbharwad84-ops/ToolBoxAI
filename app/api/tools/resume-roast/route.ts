@@ -1,0 +1,145 @@
+import { auth } from '@clerk/nextjs/server';
+import { NextResponse } from 'next/server';
+import { getServiceSupabase } from '@/lib/supabase';
+import { calculateCreditCost } from '@/lib/credit-calculator';
+import { buildResumeRoasterPrompt } from '@/lib/prompt-builder';
+import { executeWithFallback } from '@/lib/ai-providers';
+import type { ResumeRoasterTweaks } from '@/types';
+
+const DEFAULT_TWEAKS: ResumeRoasterTweaks = {
+  intensity: 3,
+  targetRole: 'auto',
+  targetRoleCustom: '',
+  experienceLevel: 'auto',
+  companyTarget: 'any',
+  focusSections: {
+    summary: true,
+    experience: true,
+    skills: true,
+    education: true,
+    atsCheck: true,
+    formatting: true,
+  },
+  rewriteBullets: true,
+  numFixes: 3,
+  persona: 'marcus',
+  language: 'English',
+};
+
+export async function POST(req: Request) {
+  const startTime = Date.now();
+  const { userId: clerkId } = await auth();
+  if (!clerkId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const supabase = getServiceSupabase();
+  const { data: user } = await supabase
+    .from('users')
+    .select('*')
+    .eq('clerk_id', clerkId)
+    .single();
+
+  if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+
+  // Pro gate
+  if (user.plan === 'free') {
+    return NextResponse.json({
+      error: 'PRO_REQUIRED',
+      message: 'Resume Roaster requires Pro. Upgrade to unlock.',
+    }, { status: 403 });
+  }
+
+  const body = await req.json();
+  const content = body.content?.trim();
+  const tweaks: ResumeRoasterTweaks = { ...DEFAULT_TWEAKS, ...body.tweaks };
+
+  if (!content) {
+    return NextResponse.json({ error: 'EMPTY_INPUT', message: 'Please paste your resume content.' }, { status: 400 });
+  }
+
+  const cost = calculateCreditCost('resume_roaster', tweaks);
+
+  if (user.credits < cost) {
+    return NextResponse.json({
+      error: 'INSUFFICIENT_CREDITS',
+      required: cost,
+      current: user.credits,
+      message: `You need ${cost} credits but have ${user.credits}.`,
+    }, { status: 402 });
+  }
+
+  const { systemPrompt, userPrompt } = buildResumeRoasterPrompt(content, tweaks);
+
+  let aiResult;
+  try {
+    aiResult = await executeWithFallback(userPrompt, systemPrompt, clerkId);
+  } catch {
+    return NextResponse.json({
+      error: 'SERVICE_UNAVAILABLE',
+      message: 'Our AI providers are temporarily unavailable. No credits were charged.',
+    }, { status: 503 });
+  }
+
+  let remaining = user.credits;
+  if (aiResult.deductCredits) {
+    const { data: deductResult } = await supabase.rpc('deduct_credits', {
+      p_clerk_id: clerkId,
+      p_amount: cost,
+    });
+    const row = deductResult?.[0] ?? deductResult;
+    if (!row?.success) {
+      return NextResponse.json({ error: 'INSUFFICIENT_CREDITS', message: row?.error_msg ?? 'Credit deduction failed' }, { status: 402 });
+    }
+    remaining = row.remaining_credits;
+  }
+
+  let parsedResult;
+  try {
+    parsedResult = JSON.parse(aiResult.result);
+  } catch {
+    parsedResult = { raw_output: aiResult.result };
+  }
+
+  let historyId = null;
+  if (user.auto_save_history) {
+    const { data: history } = await supabase
+      .from('tool_history')
+      .insert({
+        user_id: user.id,
+        clerk_id: clerkId,
+        tool_name: 'resume_roaster',
+        tool_display_name: 'Resume Roaster',
+        input_data: { content: content.slice(0, 5000) },
+        input_preview: content.slice(0, 200),
+        output_data: parsedResult,
+        tweaks_used: tweaks,
+        ai_provider_used: aiResult.provider,
+        credits_used: aiResult.deductCredits ? cost : 0,
+        processing_time_ms: Date.now() - startTime,
+        status: 'success',
+      })
+      .select('id')
+      .single();
+    historyId = history?.id;
+  }
+
+  if (aiResult.deductCredits) {
+    await supabase.from('credit_transactions').insert({
+      user_id: user.id,
+      clerk_id: clerkId,
+      type: 'tool_use',
+      amount: -cost,
+      balance_after: remaining,
+      description: `Resume Roaster — intensity ${tweaks.intensity}, ${tweaks.persona} persona`,
+      tool_history_id: historyId,
+    });
+  }
+
+  return NextResponse.json({
+    result: parsedResult,
+    creditsUsed: aiResult.deductCredits ? cost : 0,
+    creditsRemaining: remaining,
+    provider: aiResult.provider,
+    historyId,
+    processingTimeMs: Date.now() - startTime,
+  });
+}
