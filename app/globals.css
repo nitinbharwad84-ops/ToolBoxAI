@@ -1,25 +1,29 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: oklch(0.72 0.15 220);
-  --color-primary-hover: oklch(0.65 0.18 220);
-  --color-accent: oklch(0.75 0.15 170);
-  --color-accent-hover: oklch(0.68 0.18 170);
+  /* SaaS Primary - Indigo/Blue-Violet */
+  --color-primary: oklch(0.55 0.25 260);
+  --color-primary-hover: oklch(0.45 0.25 260);
+  /* SaaS Accent - Teal/Cyan */
+  --color-accent: oklch(0.60 0.15 200);
+  --color-accent-hover: oklch(0.50 0.15 200);
 
-  --color-surface-50: oklch(0.98 0 0);
-  --color-surface-100: oklch(0.16 0.01 260);
-  --color-surface-200: oklch(0.20 0.01 260);
-  --color-surface-300: oklch(0.25 0.01 260);
-  --color-surface-400: oklch(0.35 0.01 260);
-  --color-surface-500: oklch(0.50 0.01 260);
-  --color-surface-600: oklch(0.65 0.01 260);
-  --color-surface-700: oklch(0.80 0.01 260);
-  --color-surface-800: oklch(0.90 0.01 260);
-  --color-surface-900: oklch(0.12 0.01 260);
+  /* Light Theme Surface Scale (Slate/Gray tint) */
+  --color-surface-50: oklch(0.99 0.01 260);   /* Page background */
+  --color-surface-100: oklch(0.96 0.01 260);  /* Hover states / subtle panels */
+  --color-surface-200: oklch(0.92 0.02 260);  /* Borders */
+  --color-surface-300: oklch(0.85 0.02 260);  /* Stronger borders */
+  --color-surface-400: oklch(0.70 0.02 260);  /* Disabled text/icons */
+  --color-surface-500: oklch(0.55 0.02 260);  /* Muted text */
+  --color-surface-600: oklch(0.40 0.02 260);
+  --color-surface-700: oklch(0.25 0.02 260);  /* Body text */
+  --color-surface-800: oklch(0.15 0.02 260);  /* Headings */
+  --color-surface-900: oklch(0.10 0.02 260);  /* Heavy bold text */
 
-  --color-success: oklch(0.72 0.17 150);
-  --color-warning: oklch(0.80 0.15 80);
-  --color-danger: oklch(0.65 0.20 25);
+  /* Status Colors (adjusted for light theme readability) */
+  --color-success: oklch(0.60 0.15 150);
+  --color-warning: oklch(0.70 0.15 80);
+  --color-danger: oklch(0.55 0.20 25);
 
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
@@ -29,7 +33,7 @@
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--color-surface-400) transparent;
+  scrollbar-color: var(--color-surface-300) var(--color-surface-50);
 }
 
 html {
@@ -37,11 +41,15 @@ html {
 }
 
 body {
-  background: var(--color-surface-900);
+  background: var(--color-surface-50);
   color: var(--color-surface-700);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--color-surface-800);
 }
 
 :focus-visible {
@@ -68,16 +76,17 @@ body {
 /* ── Utilities ─────────────────────────────────────── */
 
 .glass {
-  background: oklch(0.14 0.01 260 / 0.8);
+  background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(12px);
-  border: 1px solid oklch(0.25 0.01 260 / 0.5);
+  border: 1px solid var(--color-surface-200);
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
 }
 
 .glass-card {
-  background: oklch(0.16 0.01 260 / 0.6);
-  backdrop-filter: blur(8px);
-  border: 1px solid oklch(0.25 0.01 260 / 0.4);
+  background: #ffffff;
+  border: 1px solid var(--color-surface-200);
   border-radius: 12px;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05), 0 1px 2px -1px rgb(0 0 0 / 0.05);
 }
 
 .gradient-text {
@@ -87,12 +96,13 @@ body {
   background-clip: text;
 }
 
+/* Glows updated for light theme */
 .glow-primary {
-  box-shadow: 0 0 20px oklch(0.72 0.15 220 / 0.2), 0 0 40px oklch(0.72 0.15 220 / 0.1);
+  box-shadow: 0 8px 20px -4px oklch(0.55 0.25 260 / 0.25), 0 4px 10px -2px oklch(0.55 0.25 260 / 0.15);
 }
 
 .glow-accent {
-  box-shadow: 0 0 20px oklch(0.75 0.15 170 / 0.2), 0 0 40px oklch(0.75 0.15 170 / 0.1);
+  box-shadow: 0 8px 20px -4px oklch(0.60 0.15 200 / 0.25), 0 4px 10px -2px oklch(0.60 0.15 200 / 0.15);
 }
 
 /* ── Animations ────────────────────────────────────── */
@@ -108,8 +118,8 @@ body {
 }
 
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 12px oklch(0.72 0.15 220 / 0.3); }
-  50% { box-shadow: 0 0 24px oklch(0.72 0.15 220 / 0.6); }
+  0%, 100% { box-shadow: 0 4px 12px oklch(0.55 0.25 260 / 0.15); }
+  50% { box-shadow: 0 4px 24px oklch(0.55 0.25 260 / 0.3); }
 }
 
 @keyframes shimmer {
@@ -117,7 +127,12 @@ body {
   100% { background-position: 200% 0; }
 }
 
+/* Update shimmer for light theme cards */
 .animate-shimmer {
+  background: var(--color-surface-100);
+  background-image: linear-gradient(to right, var(--color-surface-100) 0%, var(--color-surface-50) 20%, var(--color-surface-100) 40%, var(--color-surface-100) 100%);
+  background-repeat: no-repeat;
+  background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
 }
 
@@ -167,4 +182,3 @@ body {
     padding-bottom: env(safe-area-inset-bottom, 16px);
   }
 }
-

@@ -3,7 +3,7 @@ import { Zap, ArrowLeft, Search } from 'lucide-react';
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen bg-surface-900 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-surface-50 flex items-center justify-center px-4">
       <div className="text-center space-y-6 max-w-md">
         {/* Logo */}
         <div className="flex items-center justify-center gap-2 mb-8">

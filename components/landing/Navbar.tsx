@@ -8,7 +8,7 @@ export default function Navbar() {
   const { isSignedIn } = useAuth();
 
   return (
-    <nav className="border-b border-surface-300/30 backdrop-blur-xl bg-surface-900/80 sticky top-0 z-50">
+    <nav className="border-b border-surface-300/30 backdrop-blur-xl bg-surface-50/80 sticky top-0 z-50">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">

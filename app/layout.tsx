@@ -49,7 +49,7 @@ export default function RootLayout({
             rel="stylesheet"
           />
         </head>
-        <body className="min-h-screen bg-surface-900 text-surface-700 antialiased">
+        <body className="min-h-screen text-surface-700 antialiased">
           <a href="#main-content" className="skip-link">Skip to content</a>
           <div id="main-content">
             {children}
