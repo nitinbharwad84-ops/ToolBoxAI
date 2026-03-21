@@ -170,10 +170,14 @@ export function buildEmailPacifierPrompt(email: string, tweaks: EmailPacifierTwe
   };
 
   const jsonFields: string[] = [];
-  for (let i = 1; i <= tweaks.alternatives; i++) {
-    jsonFields.push(`"version_${i}": { "subject": "string", "body": "string", "tone_used": "string" }`);
+  jsonFields.push('"subject_line": "string"');
+  jsonFields.push('"rewritten_email": "string"');
+  
+  if (tweaks.alternatives > 1) {
+    jsonFields.push(`"alternatives": ["array of exactly ${tweaks.alternatives - 1} alternative email body strings"]`);
   }
-  jsonFields.push('"original_issues": ["array of problems identified in the original email"]');
+  
+  jsonFields.push('"analysis": "string — brief analysis of why the original email sounded aggressive and how diplomacy was applied"');
   jsonFields.push('"diplomacy_tips": ["array of 2-3 communication tips relevant to this situation"]');
 
   const systemPrompt = [

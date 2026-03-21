@@ -1,22 +1,32 @@
-# Phase 28: Final Deployment Prep & Security Audit
+# Phase 29: Fix Email Pacifier & History Formatting
 
-## Objective
-The user has successfully deployed the application to Vercel and updated the production environment variables. Before marking this project as 100% complete, we must perform a final Orchestrated Security & Configuration Audit to ensure production readiness.
+## The Problems
 
-## Audit Plan (Phase 2)
+1. **Email Pacifier UI is Blank**: The AI is currently generating JSON with keys like `version_1` and `version_2`, but the frontend UI (`EmailPacifierResult.tsx`) is explicitly looking for `rewritten_email`, `analysis`, and an `alternatives` array. Because the keys don't match, the UI renders empty.
+2. **History is Raw JSON**: The History page doesn't use the beautiful result components. When you expand a history item, it just dumps raw `JSON.stringify` text onto the screen, which is ugly and hard to read.
 
-If approved, the following specialized agents will be invoked in parallel:
+## The Solution (Phase 2)
+If approved, the agents will execute the following parallel fixes:
 
-### 1. `security-auditor`
-*   **`.gitignore` Audit**: Ensure `.env`, `.env.local`, and other secret files are properly excluded from version control.
-*   **Environment Leak Check**: Scan the codebase to ensure sensitive keys (like `SUPABASE_SERVICE_ROLE_KEY` or `CLERK_SECRET_KEY`) are NOT prefixed with `NEXT_PUBLIC_`, ensuring they are kept strictly on the server.
+### 1. `backend-specialist`
+*   Update `lib/prompt-builder.ts` (Email Pacifier Prompt).
+*   Change the JSON schema injected into the AI to strictly output:
+    ```json
+    {
+      "subject_line": "...",
+      "analysis": "...",
+      "rewritten_email": "...",
+      "alternatives": ["...", "..."]
+    }
+    ```
+    This instantly fixes the Email Pacifier result box.
 
-### 2. `devops-engineer`
-*   **`next.config.js` Review**: Ensure strict mode is enabled and remote image patterns (like Clerk/Google avatars) are properly configured for production.
-*   **Build Verification**: Run a final strict `next build` to confirm 0 compilation or type errors in the production bundle.
-
-### 3. `test-engineer`
-*   **Lint & Security Sweeps**: Run unified linting (`lint_runner.py`) and static vulnerability scanning (`security_scan.py`) to generate the final deployment sign-off.
+### 2. `frontend-specialist`
+*   Update `app/dashboard/history/page.tsx`.
+*   Import the 3 Result Components (`SummarizerResult`, `ResumeRoasterResult`, `EmailPacifierResult`).
+*   Instead of `<pre>{JSON.stringify()}</pre>`, inject the correct component based on `item.tool_name` (e.g., `summarizer`, `resume_roaster`, `email_pacifier`).
+*   The history page will now look exactly like the tool pages, fully formatted and beautiful.
 
 ---
-**Do you approve this final deployment audit plan? (Y/N)**
+**Do you approve this plan? (Y/N)**
+Y

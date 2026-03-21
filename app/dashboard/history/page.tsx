@@ -9,6 +9,9 @@ import EmptyState from '@/components/ui/EmptyState';
 import { History, Trash2, ChevronLeft, ChevronRight, Download, ChevronDown, Loader2 } from 'lucide-react';
 import { useState, useCallback } from 'react';
 import type { ToolName } from '@/types';
+import SummarizerResult from '@/components/tools/ResultCard/SummarizerResult';
+import ResumeRoasterResult from '@/components/tools/ResultCard/ResumeRoasterResult';
+import EmailPacifierResult from '@/components/tools/ResultCard/EmailPacifierResult';
 
 const TOOL_FILTERS: Array<{ label: string; value: ToolName | undefined }> = [
   { label: 'All', value: undefined },
@@ -155,10 +158,10 @@ export default function HistoryPage() {
                     </div>
                   ) : expandedData ? (
                     <>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-surface-500">Full Result</span>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-medium text-surface-500">Result View</span>
                         <div className="flex items-center gap-2">
-                          <CopyButton text={JSON.stringify(expandedData, null, 2)} label="Copy Result" />
+                          <CopyButton text={JSON.stringify(expandedData, null, 2)} label="Copy Raw JSON" />
                           <button
                             onClick={(e) => { e.stopPropagation(); setDeleteTarget(item.id); }}
                             className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-danger hover:bg-danger/10 transition-colors"
@@ -167,9 +170,29 @@ export default function HistoryPage() {
                           </button>
                         </div>
                       </div>
-                      <pre className="bg-surface-200/30 rounded-lg p-3 text-xs text-surface-600 overflow-x-auto max-h-64 overflow-y-auto whitespace-pre-wrap">
-                        {JSON.stringify(expandedData, null, 2)}
-                      </pre>
+
+                      <div className="bg-surface-50 border border-surface-200/50 rounded-xl overflow-hidden shadow-sm">
+                        {item.tool_name === 'summarizer' && (
+                          <div className="pointer-events-none [&_button]:pointer-events-auto">
+                            <SummarizerResult result={expandedData} provider={item.ai_provider_used ?? undefined} showProvider={user?.show_provider_badge} onReset={() => {}} />
+                          </div>
+                        )}
+                        {item.tool_name === 'resume_roaster' && (
+                          <div className="pointer-events-none [&_button]:pointer-events-auto">
+                            <ResumeRoasterResult result={expandedData} provider={item.ai_provider_used ?? undefined} showProvider={user?.show_provider_badge} onReset={() => {}} />
+                          </div>
+                        )}
+                        {item.tool_name === 'email_pacifier' && (
+                          <div className="pointer-events-none [&_button]:pointer-events-auto">
+                            <EmailPacifierResult result={expandedData} provider={item.ai_provider_used ?? undefined} showProvider={user?.show_provider_badge} onReset={() => {}} />
+                          </div>
+                        )}
+                        {!['summarizer', 'resume_roaster', 'email_pacifier'].includes(item.tool_name) && (
+                          <pre className="bg-surface-200/30 p-4 text-xs text-surface-600 overflow-x-auto max-h-64 overflow-y-auto whitespace-pre-wrap">
+                            {JSON.stringify(expandedData, null, 2)}
+                          </pre>
+                        )}
+                      </div>
                     </>
                   ) : (
                     <p className="text-sm text-surface-500 text-center">Could not load result</p>
