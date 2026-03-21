@@ -40,6 +40,22 @@ export function buildSummarizerPrompt(content: string, tweaks: SummarizerTweaks)
     legal: 'Assume the reader has a legal background and values precision',
   };
 
+  const toneMap: Record<string, string> = {
+    professional: 'Use a professional, neutral, and objective tone.',
+    casual: 'Use a casual, friendly, and approachable tone.',
+    academic: 'Use an academic, scholarly tone with technical precision.',
+    journalistic: 'Use a journalistic, punchy, and informative tone.',
+    sarcastic: 'Use a witty, slightly sarcastic, and entertaining tone.',
+  };
+
+  const formatMap: Record<string, string> = {
+    bullet: 'Format the main summary as a detailed bulleted list.',
+    numbered: 'Format the main summary as a numbered list.',
+    prose: 'Format the main summary as cohesive paragraph prose.',
+    executive: 'Format the main summary as an executive brief with hierarchical headers.',
+    table: 'Format the main data/points as a clean Markdown table where appropriate.',
+  };
+
   const jsonFields: string[] = [
     '"title": "string — document title or topic"',
     `"key_points": ["array of exactly ${tweaks.keyPoints} key points"]`,
@@ -57,7 +73,10 @@ export function buildSummarizerPrompt(content: string, tweaks: SummarizerTweaks)
     focusMap[tweaks.focusArea],
     `Response depth: ${depthMap[tweaks.depth] ?? 'standard'}.`,
     audienceMap[tweaks.audience],
+    toneMap[tweaks.tone],
+    formatMap[tweaks.format || tweaks.outputStyle],
     tweaks.language !== 'English' ? `Respond entirely in ${tweaks.language}.` : '',
+    tweaks.customInstructions ? `SPECIAL INSTRUCTIONS: ${tweaks.customInstructions}` : '',
     '',
     'Return ONLY valid JSON with this exact schema:',
     '{',
@@ -87,6 +106,18 @@ export function buildResumeRoasterPrompt(content: string, tweaks: ResumeRoasterT
     marcus: 'You are Marcus, a brutally honest senior tech recruiter who has reviewed 10,000+ resumes. You don\'t sugarcoat. You tell it like it is.',
     coach: 'You are a supportive career coach who wants the best for the candidate. You give actionable, kind but firm feedback.',
     hr: 'You are an experienced HR Manager at a Fortune 500 company. You evaluate resumes objectively against industry standards.',
+    drill: 'You are a Drill Sergeant. Your feedback is LOUD, aggressive, and demands perfection. No excuses.',
+    recruiter: 'You are a high-speed Silicon Valley Recruiter. You only care about impact, ROI, and scale. If it\'s not 10x, it\'s 0.',
+    intern: 'You are a Bored HR Intern who has seen too many resumes today. You are unimpressed, slightly cynical, and very brief.',
+  };
+
+  const industryMap: Record<string, string> = {
+    tech: 'Focus on technical depth, stacks, and engineering impact.',
+    finance: 'Focus on quantitative results, precision, and regulatory awareness.',
+    healthcare: 'Focus on compliance, patient outcomes, and specialized certifications.',
+    edu: 'Focus on pedagogy, research, and institutional impact.',
+    creative: 'Focus on portfolio strength, design thinking, and original contribution.',
+    any: 'Provide a general balanced review.',
   };
 
   const roleStr = tweaks.targetRole === 'auto'
@@ -125,10 +156,11 @@ export function buildResumeRoasterPrompt(content: string, tweaks: ResumeRoasterT
     intensityMap[tweaks.intensity] ?? intensityMap[3],
     roleStr,
     expStr,
-    companyStr,
+    industryMap[tweaks.industryFocus || 'any'],
     '',
     tweaks.rewriteBullets ? 'Rewrite weak bullets with stronger versions.' : 'Flag problems but do NOT rewrite bullets.',
     tweaks.language !== 'English' ? `Respond entirely in ${tweaks.language}.` : '',
+    tweaks.customInstructions ? `USER SPECIAL REQUESTS: ${tweaks.customInstructions}` : '',
     '',
     'Return ONLY valid JSON:',
     '{',

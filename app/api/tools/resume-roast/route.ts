@@ -28,6 +28,8 @@ const DEFAULT_TWEAKS: ResumeRoasterTweaks = {
   numFixes: 3,
   persona: 'marcus',
   language: 'English',
+  industryFocus: 'any',
+  customInstructions: '',
 };
 
 const MAX_FILE_SIZE_FREE = 3 * 1024 * 1024; // 3MB for Vercel support

@@ -154,6 +154,9 @@ export interface SummarizerTweaks {
   includeActionItems: boolean;
   includeSentiment: boolean;
   includeStats: boolean;
+  tone: 'professional' | 'casual' | 'academic' | 'journalistic' | 'sarcastic';
+  format: 'bullet' | 'numbered' | 'prose' | 'executive' | 'table';
+  customInstructions: string;
 }
 
 export interface ResumeRoasterTweaks {
@@ -172,8 +175,10 @@ export interface ResumeRoasterTweaks {
   };
   rewriteBullets: boolean;
   numFixes: number;
-  persona: 'marcus' | 'coach' | 'hr';
+  persona: 'marcus' | 'coach' | 'hr' | 'drill' | 'recruiter' | 'intern';
+  industryFocus: 'tech' | 'finance' | 'healthcare' | 'edu' | 'creative' | 'any';
   language: string;
+  customInstructions: string;
 }
 
 export interface EmailPacifierTweaks {

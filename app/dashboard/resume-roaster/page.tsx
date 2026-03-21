@@ -22,16 +22,21 @@ const DEFAULT_TWEAKS: ResumeRoasterTweaks = {
   intensity: 3, targetRole: 'auto', targetRoleCustom: '', experienceLevel: 'auto',
   companyTarget: 'any', focusSections: { summary: true, experience: true, skills: true, education: true, atsCheck: true, formatting: true },
   rewriteBullets: true, numFixes: 3, persona: 'marcus', language: 'English',
+  industryFocus: 'any', customInstructions: '',
 };
 
 const ROLE_OPTIONS = ['auto', 'swe', 'pm', 'designer', 'marketing', 'finance'].map(v => ({ value: v, label: v }));
 const EXP_OPTIONS = ['auto', 'entry', 'mid', 'senior', 'executive'].map(v => ({ value: v, label: v }));
 const COMPANY_OPTIONS = ['any', 'faang', 'startup', 'consulting', 'govt'].map(v => ({ value: v, label: v }));
 const PERSONA_OPTIONS = [
-  { value: 'marcus', label: '🔥 Marcus (brutal)' },
-  { value: 'coach', label: '🎯 Career Coach' },
-  { value: 'hr', label: '📋 HR Manager' },
+  { value: 'marcus', label: '🔥 Marcus (Brutal)' },
+  { value: 'coach', label: '🎯 Coach (Direct)' },
+  { value: 'hr', label: '📋 HR (Corporate)' },
+  { value: 'drill', label: '🪖 Drill Sgt' },
+  { value: 'recruiter', label: '💰 SV Recruiter' },
+  { value: 'intern', label: '😒 Bored Intern' },
 ];
+const INDUSTRY_OPTIONS = ['any', 'tech', 'finance', 'healthcare', 'edu', 'creative'].map(v => ({ value: v, label: v }));
 
 export default function ResumeRoasterPage() {
   const { user } = useUser();
@@ -154,6 +159,10 @@ export default function ResumeRoasterPage() {
             <MultiToggle options={COMPANY_OPTIONS} value={tweaks.companyTarget} onChange={(v) => setTweaks(p => ({ ...p, companyTarget: v as ResumeRoasterTweaks['companyTarget'] }))} />
           </div>
           <div>
+            <label className="block text-xs font-medium text-surface-500 mb-1.5">Industry Focus</label>
+            <MultiToggle options={INDUSTRY_OPTIONS} value={tweaks.industryFocus} onChange={(v) => setTweaks(p => ({ ...p, industryFocus: v as ResumeRoasterTweaks['industryFocus'] }))} />
+          </div>
+          <div>
             <label className="block text-xs font-medium text-surface-500 mb-1.5">Fixes to Suggest: {tweaks.numFixes}</label>
             <MultiToggle
               options={[1, 3, 5, 7].map(n => ({ value: String(n), label: String(n) }))}
@@ -161,6 +170,16 @@ export default function ResumeRoasterPage() {
               onChange={(v) => setTweaks(p => ({ ...p, numFixes: parseInt(v) }))}
             />
           </div>
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-surface-500 mb-1.5 text-left">Custom Instructions (e.g. "Focus on gaps", "Roast my fonts")</label>
+          <textarea
+            value={tweaks.customInstructions}
+            onChange={(e) => setTweaks(p => ({ ...p, customInstructions: e.target.value }))}
+            placeholder="What should the AI specifically roast or check for?"
+            className="w-full h-16 bg-surface-200/50 border border-surface-300/50 rounded-lg px-3 py-2 text-xs text-surface-700 placeholder-surface-400 focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all"
+          />
         </div>
         <CheckboxGroup
           options={tweaks.focusSections}

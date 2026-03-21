@@ -22,10 +22,19 @@ const DEFAULT_TWEAKS: SummarizerTweaks = {
   keyPoints: 5, outputStyle: 'bullet', focusArea: 'entire', depth: 3,
   audience: 'general', language: 'English', includeTldr: true,
   includeActionItems: true, includeSentiment: false, includeStats: true,
+  tone: 'professional', format: 'bullet', customInstructions: '',
 };
 
 const STYLE_OPTIONS = ['bullet', 'numbered', 'prose', 'executive', 'eli5'].map(v => ({ value: v, label: v }));
 const AUDIENCE_OPTIONS = ['general', 'executive', 'technical', 'student', 'legal'].map(v => ({ value: v, label: v }));
+const TONE_OPTIONS = ['professional', 'casual', 'academic', 'journalistic', 'sarcastic'].map(v => ({ value: v, label: v }));
+const FORMAT_OPTIONS = [
+  { value: 'bullet', label: 'Bullets' },
+  { value: 'numbered', label: 'Numbered' },
+  { value: 'prose', label: 'Prose' },
+  { value: 'executive', label: 'Brief' },
+  { value: 'table', label: 'Table' }
+];
 
 export default function SummarizerPage() {
   const { user } = useUser();
@@ -128,6 +137,24 @@ export default function SummarizerPage() {
             <label className="block text-xs font-medium text-surface-500 mb-1.5">Target Audience</label>
             <MultiToggle options={AUDIENCE_OPTIONS} value={tweaks.audience} onChange={(v) => setTweaks(p => ({ ...p, audience: v as SummarizerTweaks['audience'] }))} />
           </div>
+          <div>
+            <label className="block text-xs font-medium text-surface-500 mb-1.5">Tone</label>
+            <MultiToggle options={TONE_OPTIONS} value={tweaks.tone} onChange={(v) => setTweaks(p => ({ ...p, tone: v as SummarizerTweaks['tone'] }))} />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-surface-500 mb-1.5">Format Override</label>
+            <MultiToggle options={FORMAT_OPTIONS} value={tweaks.format} onChange={(v) => setTweaks(p => ({ ...p, format: v as SummarizerTweaks['format'] }))} />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-surface-500 mb-1.5 text-left">Custom Instructions (e.g. "Focus on pricing", "Use emoji")</label>
+          <textarea
+            value={tweaks.customInstructions}
+            onChange={(e) => setTweaks(p => ({ ...p, customInstructions: e.target.value }))}
+            placeholder="Special formatting or focus instructions..."
+            className="w-full h-16 bg-surface-200/50 border border-surface-300/50 rounded-lg px-3 py-2 text-xs text-surface-700 placeholder-surface-400 focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all"
+          />
         </div>
         <CheckboxGroup
           options={{ TLDR: tweaks.includeTldr, 'Action Items': tweaks.includeActionItems, Sentiment: tweaks.includeSentiment, 'Key Stats': tweaks.includeStats }}

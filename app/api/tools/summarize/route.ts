@@ -21,6 +21,9 @@ const DEFAULT_TWEAKS: SummarizerTweaks = {
   includeActionItems: true,
   includeSentiment: false,
   includeStats: true,
+  tone: 'professional',
+  format: 'bullet',
+  customInstructions: '',
 };
 
 const MAX_FILE_SIZE_FREE = 3 * 1024 * 1024; // Lowering to 3MB for Vercel's 4.5MB payload limit
