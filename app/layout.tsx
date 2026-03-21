@@ -44,12 +44,25 @@ export default function RootLayout({
       appearance={{
         baseTheme: dark,
         variables: {
-          colorPrimary: '#0ea5e9',
-          colorBackground: '#18181b',
-          colorText: '#e4e4e7',
+          colorPrimary: '#6366f1',
+          colorBackground: '#121214',
+          colorText: '#f4f4f5',
           colorTextSecondary: '#a1a1aa',
-          colorInputBackground: '#27272a',
-          colorInputText: '#e4e4e7',
+          colorInputBackground: '#1e1e20',
+          colorInputText: '#ffffff',
+          colorSuccess: '#22c55e',
+          colorDanger: '#ef4444',
+        },
+        elements: {
+          userButtonPopoverActionButtonText: { color: '#e4e4e7' },
+          userButtonPopoverFooter: 'hidden',
+          headerTitle: { color: '#ffffff' },
+          headerSubtitle: { color: '#a1a1aa' },
+          formFieldLabel: { color: '#d4d4d8' },
+          footerActionText: { color: '#a1a1aa' },
+          footerActionLink: { color: '#6366f1' },
+          socialButtonsBlockButtonText: { color: '#f4f4f5' },
+          socialButtonsBlockButton: 'bg-[#1e1e20] border-[#2d2d30] hover:bg-[#2d2d30]',
         }
       }}
     >
