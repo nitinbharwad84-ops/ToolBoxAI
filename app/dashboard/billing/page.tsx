@@ -50,34 +50,16 @@ export default function BillingPage() {
   const handleBuyCredits = async (packageId: string) => {
     setBuyingPack(packageId);
     try {
-      const res = await fetch('/api/razorpay/create-order', {
+      const res = await fetch('/api/payments/fake-buy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ packageId }),
       });
-      const data = await res.json();
-      if (!res.ok) return;
-
-      const options = {
-        key: data.keyId,
-        amount: data.amount,
-        currency: data.currency,
-        name: 'ToolboxAI',
-        description: `${data.credits} Credits — ${data.packageName}`,
-        order_id: data.orderId,
-        handler: async (response: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) => {
-          await fetch('/api/razorpay/verify-payment', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...response, packageId }),
-          });
-          window.location.reload();
-        },
-        theme: { color: '#0ea5e9' },
-      };
-
-      const rzp = new (window as unknown as { Razorpay: new (opts: typeof options) => { open: () => void } }).Razorpay(options);
-      rzp.open();
+      if (res.ok) {
+        window.location.reload();
+      } else {
+        console.error('Simulated payment failed');
+      }
     } finally {
       setBuyingPack(null);
     }
@@ -86,14 +68,15 @@ export default function BillingPage() {
   const handleSubscribe = async () => {
     setSubscribing(true);
     try {
-      const res = await fetch('/api/razorpay/create-subscription', {
+      const res = await fetch('/api/payments/fake-subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ billingCycle }),
       });
-      const data = await res.json();
-      if (data.shortUrl) {
-        window.location.href = data.shortUrl;
+      if (res.ok) {
+        window.location.reload();
+      } else {
+        console.error('Simulated subscription failed');
       }
     } finally {
       setSubscribing(false);

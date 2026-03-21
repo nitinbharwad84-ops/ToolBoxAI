@@ -1,31 +1,31 @@
-# Phase 29: Fix Email Pacifier & History Formatting
+# Phase 30: Implement Fake Payment System (Bypass Razorpay)
 
-## The Problems
+## The Goal
 
-1. **Email Pacifier UI is Blank**: The AI is currently generating JSON with keys like `version_1` and `version_2`, but the frontend UI (`EmailPacifierResult.tsx`) is explicitly looking for `rewritten_email`, `analysis`, and an `alternatives` array. Because the keys don't match, the UI renders empty.
-2. **History is Raw JSON**: The History page doesn't use the beautiful result components. When you expand a history item, it just dumps raw `JSON.stringify` text onto the screen, which is ugly and hard to read.
+The user wants to remove the actual Razorpay checkout process and replace it with a "fake" payment system for testing/internal use. This means when a user clicks "Buy Credits" or "Subscribe", their account should instantly be updated without requiring real money or a credit card prompt.
 
 ## The Solution (Phase 2)
 If approved, the agents will execute the following parallel fixes:
 
 ### 1. `backend-specialist`
-*   Update `lib/prompt-builder.ts` (Email Pacifier Prompt).
-*   Change the JSON schema injected into the AI to strictly output:
-    ```json
-    {
-      "subject_line": "...",
-      "analysis": "...",
-      "rewritten_email": "...",
-      "alternatives": ["...", "..."]
-    }
-    ```
-    This instantly fixes the Email Pacifier result box.
+*   Create new API endpoints for the fake payment system:
+    *   `/api/payments/fake-buy/route.ts`: Simulates a credit pack purchase. It will find the package (50, 200, or 500), insert a `credit_transactions` log with `amount`, `type: 'purchased'`, and update the `users` table's `credits` integer.
+    *   `/api/payments/fake-subscribe/route.ts`: Simulates a Pro subscription upgrade. It will update the `users` table setting `plan` to `'pro'`.
+*   These endpoints will be secured by Clerk authentication (`auth()`).
 
 ### 2. `frontend-specialist`
-*   Update `app/dashboard/history/page.tsx`.
-*   Import the 3 Result Components (`SummarizerResult`, `ResumeRoasterResult`, `EmailPacifierResult`).
-*   Instead of `<pre>{JSON.stringify()}</pre>`, inject the correct component based on `item.tool_name` (e.g., `summarizer`, `resume_roaster`, `email_pacifier`).
-*   The history page will now look exactly like the tool pages, fully formatted and beautiful.
+*   Modify `app/dashboard/billing/page.tsx` directly.
+*   Remove the Razorpay script loading logic or JS SDK initialization.
+*   Update `handleBuyCredits`: Instead of creating a Razorpay order, it will POST to `/api/payments/fake-buy` and refresh the page or state upon success.
+*   Update `handleSubscribe`: Instead of redirecting to a Razorpay short URL, it will POST to `/api/payments/fake-subscribe` and refresh the state.
+*   Add a subtle UI indicator (e.g., toast or button text) like "Simulated Purchase Successful".
+
+### 3. `database-architect` / `security-auditor`
+*   Review the fake API handlers to ensure they correctly use Supabase transactions.
+*   Ensure that the `credit_transactions` table gets the proper `balance_after` calculations during the fake purchase so the ledger remains mathematically sound, even without a vendor `payment_id`.
+
+### 4. `test-engineer`
+*   Run the unified linting and Next.js build verification to ensure no dead Razorpay imports crash the edge deployment.
 
 ---
 **Do you approve this plan? (Y/N)**
