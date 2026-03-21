@@ -35,6 +35,12 @@ export function useToolSubmit({ endpoint, toolName, successTitle }: UseToolSubmi
     setResult(null);
 
     try {
+      // Vercel/Next.js Body Size Limit Check (Base64 overhead is ~33%)
+      const base64 = (body as any).fileBase64;
+      if (base64 && base64.length > 4.4 * 1024 * 1024) {
+        throw new Error('FILE_TOO_LARGE: The encoded file is too large for the server (Max ~3MB PDF). Try a smaller file.');
+      }
+
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

@@ -1,5 +1,6 @@
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
+export const dynamic = 'force-dynamic';
 import { getServiceSupabase } from '@/lib/supabase';
 import { calculateCreditCost } from '@/lib/credit-calculator';
 import { buildResumeRoasterPrompt } from '@/lib/prompt-builder';
@@ -7,7 +8,7 @@ import { executeWithFallback } from '@/lib/ai-providers';
 import { rateLimit, rateLimitResponse } from '@/lib/rate-limit';
 import { sanitizeText, validateTweaks } from '@/lib/validate';
 import type { ResumeRoasterTweaks } from '@/types';
-import { PDFParse } from 'pdf-parse';
+import { extractTextFromPDF } from '@/lib/pdf-parser';
 
 const DEFAULT_TWEAKS: ResumeRoasterTweaks = {
   intensity: 3,
@@ -29,7 +30,8 @@ const DEFAULT_TWEAKS: ResumeRoasterTweaks = {
   language: 'English',
 };
 
-const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB for Pro users Since Roaster is Pro only
+const MAX_FILE_SIZE_FREE = 3 * 1024 * 1024; // 3MB for Vercel support
+const MAX_FILE_SIZE_PRO = 25 * 1024 * 1024; // 25MB for Pro users Since Roaster is Pro only
 
 export async function POST(req: Request) {
   const startTime = Date.now();
@@ -70,19 +72,19 @@ export async function POST(req: Request) {
     fileName = body.fileName;
     fileType = body.fileType ?? 'unknown';
 
-    if (fileSize > MAX_FILE_SIZE) {
+    const maxAllowedSize = user.plan === 'pro' ? MAX_FILE_SIZE_PRO : MAX_FILE_SIZE_FREE;
+
+    if (fileSize > maxAllowedSize) {
       return NextResponse.json({
         error: 'FILE_TOO_LARGE',
-        message: 'File exceeds 25MB limit.',
+        message: `File exceeds ${user.plan === 'pro' ? '25' : '3'}MB limit.${user.plan === 'free' ? ' Upgrade to Pro for larger files.' : ''}`,
       }, { status: 400 });
     }
 
     // Extract text from PDF
     if (fileType === 'application/pdf' || fileName?.endsWith('.pdf')) {
       try {
-        const parser = new PDFParse({ data: buffer });
-        const parsed = await parser.getText();
-        content = parsed.text;
+        content = await extractTextFromPDF(buffer);
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
         return NextResponse.json({ error: 'FILE_PARSE_ERROR', message: `Failed to extract text from PDF. Details: ${msg}` }, { status: 400 });

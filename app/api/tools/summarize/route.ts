@@ -1,5 +1,6 @@
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
+export const dynamic = 'force-dynamic';
 import { getServiceSupabase } from '@/lib/supabase';
 import { calculateCreditCost } from '@/lib/credit-calculator';
 import { buildSummarizerPrompt } from '@/lib/prompt-builder';
@@ -7,7 +8,7 @@ import { executeWithFallback } from '@/lib/ai-providers';
 import { rateLimit, rateLimitResponse } from '@/lib/rate-limit';
 import { sanitizeText, validateTweaks } from '@/lib/validate';
 import type { SummarizerTweaks } from '@/types';
-import { PDFParse } from 'pdf-parse';
+import { extractTextFromPDF } from '@/lib/pdf-parser';
 
 const DEFAULT_TWEAKS: SummarizerTweaks = {
   keyPoints: 5,
@@ -22,7 +23,7 @@ const DEFAULT_TWEAKS: SummarizerTweaks = {
   includeStats: true,
 };
 
-const MAX_FILE_SIZE_FREE = 5 * 1024 * 1024;
+const MAX_FILE_SIZE_FREE = 3 * 1024 * 1024; // Lowering to 3MB for Vercel's 4.5MB payload limit
 const MAX_FILE_SIZE_PRO = 25 * 1024 * 1024;
 
 export async function POST(req: Request) {
@@ -42,7 +43,15 @@ export async function POST(req: Request) {
 
   if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
-  const body = await req.json();
+  console.log('[API] Summarize request started');
+  let body;
+  try {
+    body = await req.json();
+  } catch (err) {
+    console.error('[API] Failed to parse request JSON:', err);
+    return NextResponse.json({ error: 'INVALID_JSON', message: 'The request body is malformed or too large for the server to process.' }, { status: 400 });
+  }
+
   let content = sanitizeText(body.content);
   const tweaks: SummarizerTweaks = { ...DEFAULT_TWEAKS, ...validateTweaks(body.tweaks) };
   let fileName: string | null = null;
@@ -60,17 +69,18 @@ export async function POST(req: Request) {
     if (fileSize > maxSize) {
       return NextResponse.json({
         error: 'FILE_TOO_LARGE',
-        message: `File exceeds ${user.plan === 'pro' ? '25' : '5'}MB limit.${user.plan === 'free' ? ' Upgrade to Pro for larger files.' : ''}`,
+        message: `File exceeds ${user.plan === 'pro' ? '25' : '3'}MB limit.${user.plan === 'free' ? ' Upgrade to Pro for larger files.' : ''}`,
       }, { status: 400 });
     }
 
     // Extract text from PDF
     if (fileType === 'application/pdf' || fileName?.endsWith('.pdf')) {
+      console.log('[API] Processing PDF upload:', fileName, fileSize, 'bytes');
       try {
-        const parser = new PDFParse({ data: buffer });
-        const parsed = await parser.getText();
-        content = parsed.text;
+        content = await extractTextFromPDF(buffer);
+        console.log('[API] PDF text extraction successful. Length:', content.length);
       } catch (err: unknown) {
+        console.error('[API] PDF Parse Error:', err);
         const msg = err instanceof Error ? err.message : String(err);
         return NextResponse.json({ error: 'FILE_PARSE_ERROR', message: `Failed to extract text from PDF. Details: ${msg}` }, { status: 400 });
       }
