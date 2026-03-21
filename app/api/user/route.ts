@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { auth, currentUser } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import type { UserProfile } from '@/types';
@@ -8,14 +8,49 @@ export async function GET() {
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const supabase = getServiceSupabase();
-  const { data: user, error } = await supabase
+  let { data: user, error } = await supabase
     .from('users')
     .select('*')
     .eq('clerk_id', userId)
     .single();
 
   if (error || !user) {
-    return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    // ── FALLBACK: Auto-sync user if webhook missed them locally ──
+    const clerkUser = await currentUser();
+    if (!clerkUser) return NextResponse.json({ error: 'User not found in Clerk' }, { status: 404 });
+
+    const email = clerkUser.emailAddresses[0]?.emailAddress ?? '';
+
+    const { data: newUser, error: insertError } = await supabase
+      .from('users')
+      .insert({
+        clerk_id: userId,
+        email,
+        first_name: clerkUser.firstName ?? null,
+        last_name: clerkUser.lastName ?? null,
+        image_url: clerkUser.imageUrl ?? null,
+        plan: 'free',
+        credits: 100,
+      })
+      .select('*')
+      .single();
+
+    if (insertError || !newUser) {
+      console.error('Failed to auto-sync user:', insertError);
+      return NextResponse.json({ error: 'Failed to auto-sync user' }, { status: 500 });
+    }
+
+    // Grant 100 starting credits
+    await supabase.from('credit_transactions').insert({
+      user_id: newUser.id,
+      clerk_id: userId,
+      type: 'initial_grant',
+      amount: 100,
+      balance_after: 100,
+      description: 'Welcome — 100 free credits',
+    });
+
+    user = newUser;
   }
 
   const profile: UserProfile = {
