@@ -5,6 +5,7 @@ import { useUser } from '@/hooks/useUser';
 import { cn, formatRelativeTime, getToolIcon } from '@/lib/utils';
 import CopyButton from '@/components/ui/CopyButton';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
+import EmptyState from '@/components/ui/EmptyState';
 import { History, Trash2, ChevronLeft, ChevronRight, Download, ChevronDown, Loader2 } from 'lucide-react';
 import { useState, useCallback } from 'react';
 import type { ToolName } from '@/types';
@@ -113,9 +114,13 @@ export default function HistoryPage() {
           <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
         </div>
       ) : items.length === 0 ? (
-        <div className="glass-card p-12 text-center text-surface-500">
-          <p>No history yet. Start using the tools!</p>
-        </div>
+        <EmptyState
+          icon={History}
+          title="No history yet"
+          description="Results from your AI tools will appear here. Try summarizing your first document!"
+          actionLabel="Go to Summarizer"
+          actionHref="/dashboard/summarizer"
+        />
       ) : (
         <div className="space-y-2">
           {items.map((item) => (

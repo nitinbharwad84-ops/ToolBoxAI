@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { useKeyboardShortcut } from '@/hooks/useKeyboardShortcut';
+import { useAutoResize } from '@/hooks/useAutoResize';
 import { useUser } from '@/hooks/useUser';
 import { useToolSubmit } from '@/hooks/useToolSubmit';
 import { calculateCreditCost } from '@/lib/credit-calculator';
@@ -14,6 +15,7 @@ import LiveCreditCost from '@/components/tools/LiveCreditCost';
 import PresetManager from '@/components/tools/PresetManager';
 import FileDropzone from '@/components/tools/FileDropzone';
 import CheckboxGroup from '@/components/tools/CheckboxGroup';
+import CharCounter from '@/components/ui/CharCounter';
 import SummarizerResult from '@/components/tools/ResultCard/SummarizerResult';
 
 const DEFAULT_TWEAKS: SummarizerTweaks = {
@@ -39,6 +41,7 @@ export default function SummarizerPage() {
 
   const creditCost = calculateCreditCost('summarizer', tweaks);
   const maxSizeMb = user?.plan === 'pro' ? 25 : 5;
+  const { ref: textareaRef, resize } = useAutoResize();
 
   const handleSubmit = useCallback(async () => {
     if (!content.trim() && !file) { setValidationError('Please paste content or upload a file.'); return; }
@@ -79,10 +82,16 @@ export default function SummarizerPage() {
         <FileDropzone accept=".pdf,.xlsx,.xls" maxSizeMb={maxSizeMb} file={file} onFileChange={setFile} disabled={!!content.trim()} />
         {!file && (
           <textarea
-            value={content} onChange={(e) => setContent(e.target.value)}
+            ref={textareaRef}
+            value={content} onChange={(e) => { setContent(e.target.value); resize(); }}
             placeholder="Or paste your document text here..."
-            className="w-full h-40 bg-surface-200/50 border border-surface-300/50 rounded-lg px-4 py-3 text-surface-700 placeholder-surface-500 resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+            className="w-full min-h-[160px] bg-surface-200/50 border border-surface-300/50 rounded-lg px-4 py-3 text-surface-700 placeholder-surface-500 resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
           />
+        )}
+        {!file && content.length > 0 && (
+          <div className="flex justify-end">
+            <CharCounter current={content.length} max={50000} />
+          </div>
         )}
       </div>
 

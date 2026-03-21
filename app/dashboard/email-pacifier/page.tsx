@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { useKeyboardShortcut } from '@/hooks/useKeyboardShortcut';
+import { useAutoResize } from '@/hooks/useAutoResize';
 import { useUser } from '@/hooks/useUser';
 import { useToolSubmit } from '@/hooks/useToolSubmit';
 import { calculateCreditCost } from '@/lib/credit-calculator';
@@ -12,6 +13,7 @@ import TweakPanel from '@/components/tools/TweakPanel';
 import MultiToggle from '@/components/tools/MultiToggle';
 import LiveCreditCost from '@/components/tools/LiveCreditCost';
 import PresetManager from '@/components/tools/PresetManager';
+import CharCounter from '@/components/ui/CharCounter';
 import EmailPacifierResult from '@/components/tools/ResultCard/EmailPacifierResult';
 
 const DEFAULT_TWEAKS: EmailPacifierTweaks = {
@@ -35,6 +37,7 @@ export default function EmailPacifierPage() {
   const [validationError, setValidationError] = useState('');
 
   const creditCost = calculateCreditCost('email_pacifier', tweaks);
+  const { ref: textareaRef, resize } = useAutoResize();
 
   const handleSubmit = useCallback(async () => {
     if (!email.trim()) { setValidationError('Please paste your email content.'); return; }
@@ -63,10 +66,14 @@ export default function EmailPacifierPage() {
       {/* Input */}
       <div className="glass-card p-5">
         <textarea
-          value={email} onChange={(e) => setEmail(e.target.value)}
+          ref={textareaRef}
+          value={email} onChange={(e) => { setEmail(e.target.value); resize(); }}
           placeholder="Paste the angry/aggressive email here..."
-          className="w-full h-40 bg-surface-200/50 border border-surface-300/50 rounded-lg px-4 py-3 text-surface-700 placeholder-surface-500 resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+          className="w-full min-h-[160px] bg-surface-200/50 border border-surface-300/50 rounded-lg px-4 py-3 text-surface-700 placeholder-surface-500 resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
         />
+        <div className="flex justify-end mt-1.5">
+          <CharCounter current={email.length} max={10000} />
+        </div>
       </div>
 
       {/* Tweak Panel */}

@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { useKeyboardShortcut } from '@/hooks/useKeyboardShortcut';
+import { useAutoResize } from '@/hooks/useAutoResize';
 import { useUser } from '@/hooks/useUser';
 import { useToolSubmit } from '@/hooks/useToolSubmit';
 import { calculateCreditCost } from '@/lib/credit-calculator';
@@ -13,6 +14,7 @@ import MultiToggle from '@/components/tools/MultiToggle';
 import LiveCreditCost from '@/components/tools/LiveCreditCost';
 import PresetManager from '@/components/tools/PresetManager';
 import CheckboxGroup from '@/components/tools/CheckboxGroup';
+import CharCounter from '@/components/ui/CharCounter';
 import ResumeRoasterResult from '@/components/tools/ResultCard/ResumeRoasterResult';
 
 const DEFAULT_TWEAKS: ResumeRoasterTweaks = {
@@ -43,6 +45,7 @@ export default function ResumeRoasterPage() {
 
   const creditCost = calculateCreditCost('resume_roaster', tweaks);
   const isPro = user?.plan === 'pro';
+  const { ref: textareaRef, resize } = useAutoResize(192, 500);
 
   const handleSubmit = useCallback(async () => {
     if (!resumeText.trim()) { setValidationError('Please paste your resume content.'); return; }
@@ -89,10 +92,14 @@ export default function ResumeRoasterPage() {
       {/* Input */}
       <div className="glass-card p-5">
         <textarea
-          value={resumeText} onChange={(e) => setResumeText(e.target.value)}
+          ref={textareaRef}
+          value={resumeText} onChange={(e) => { setResumeText(e.target.value); resize(); }}
           placeholder="Paste your resume content here..."
-          className="w-full h-48 bg-surface-200/50 border border-surface-300/50 rounded-lg px-4 py-3 text-surface-700 placeholder-surface-500 resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+          className="w-full min-h-[192px] bg-surface-200/50 border border-surface-300/50 rounded-lg px-4 py-3 text-surface-700 placeholder-surface-500 resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
         />
+        <div className="flex justify-end mt-1.5">
+          <CharCounter current={resumeText.length} max={20000} />
+        </div>
       </div>
 
       {/* Tweak Panel */}

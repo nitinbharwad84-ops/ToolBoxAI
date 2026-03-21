@@ -3,6 +3,8 @@
 import { useUser } from '@/hooks/useUser';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
+import Toggle from '@/components/ui/Toggle';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import { Settings, Key, Globe, Eye, Save, Loader2, Check, AlertTriangle, Trash2, TestTube } from 'lucide-react';
 
 const PROVIDERS = [
@@ -21,6 +23,7 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ working: boolean; latencyMs?: number } | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
 
   const saveApiKey = async () => {
     if (!apiKey.trim()) return;
@@ -96,7 +99,7 @@ export default function SettingsPage() {
                 {testing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <TestTube className="w-3.5 h-3.5" />}
                 {testing ? 'Testing...' : 'Test Key'}
               </button>
-              <button onClick={deleteApiKey}
+              <button onClick={() => setDeleteConfirm(true)}
                 className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-danger hover:bg-danger/10 transition-colors">
                 <Trash2 className="w-3.5 h-3.5" /> Remove Key
               </button>
@@ -175,35 +178,20 @@ export default function SettingsPage() {
             </select>
           </div>
 
-          {/* Provider Badge */}
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-surface-700">Show AI Provider</p>
-              <p className="text-xs text-surface-500">Display which AI model processed your request</p>
-            </div>
-            <button
-              onClick={() => updatePreferences({ show_provider_badge: !user?.show_provider_badge } as Partial<typeof user & { show_provider_badge: boolean }>)}
-              className={cn('w-10 h-5 rounded-full transition-all duration-200 relative',
-                user?.show_provider_badge ? 'bg-primary' : 'bg-surface-300')}>
-              <span className={cn('absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform duration-200',
-                user?.show_provider_badge && 'translate-x-5')} />
-            </button>
-          </div>
+          <Toggle
+            label="Show AI Provider"
+            description="Display which AI model processed your request"
+            checked={!!user?.show_provider_badge}
+            onChange={(v) => updatePreferences({ show_provider_badge: v } as Partial<typeof user & { show_provider_badge: boolean }>)}
+          />
 
           {/* Auto Save */}
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-surface-700">Auto-Save History</p>
-              <p className="text-xs text-surface-500">Automatically save all tool results</p>
-            </div>
-            <button
-              onClick={() => updatePreferences({ auto_save_history: !user?.auto_save_history } as Partial<typeof user & { auto_save_history: boolean }>)}
-              className={cn('w-10 h-5 rounded-full transition-all duration-200 relative',
-                user?.auto_save_history ? 'bg-primary' : 'bg-surface-300')}>
-              <span className={cn('absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform duration-200',
-                user?.auto_save_history && 'translate-x-5')} />
-            </button>
-          </div>
+          <Toggle
+            label="Auto-Save History"
+            description="Automatically save all tool results"
+            checked={!!user?.auto_save_history}
+            onChange={(v) => updatePreferences({ auto_save_history: v } as Partial<typeof user & { auto_save_history: boolean }>)}
+          />
 
           {/* Provider Badge */}
           <div className="flex items-center justify-between">
@@ -227,6 +215,15 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={deleteConfirm}
+        onClose={() => setDeleteConfirm(false)}
+        onConfirm={() => { setDeleteConfirm(false); deleteApiKey(); }}
+        title="Remove API Key"
+        message="Your encrypted API key will be permanently deleted. You'll need to re-enter it to use BYO key again."
+        confirmLabel="Remove Key"
+      />
     </div>
   );
 }
