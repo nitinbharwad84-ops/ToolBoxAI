@@ -51,7 +51,7 @@ export default function ResumeRoasterPage() {
   const { ref: textareaRef, resize } = useAutoResize(192, 500);
 
   const handleSubmit = useCallback(async () => {
-    if (!resumeText.trim() && !file) { setValidationError('Please paste your resume content or upload a PDF.'); return; }
+    if (!resumeText.trim() && !file) { setValidationError('Please paste your resume content or upload a file (PDF, Word, Text).'); return; }
     setValidationError('');
 
     const body: Record<string, unknown> = { tweaks };
@@ -104,7 +104,7 @@ export default function ResumeRoasterPage() {
 
       {/* Input */}
       <div className="glass-card p-5 space-y-3">
-        <FileDropzone accept=".pdf" maxSizeMb={maxSizeMb} file={file} onFileChange={setFile} disabled={!!resumeText.trim()} />
+        <FileDropzone accept=".pdf,.docx,.txt,.md" maxSizeMb={maxSizeMb} file={file} onFileChange={setFile} disabled={!!resumeText.trim()} />
         {!file && (
           <textarea
             ref={textareaRef}

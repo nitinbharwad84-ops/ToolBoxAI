@@ -8,7 +8,7 @@ import { executeWithFallback } from '@/lib/ai-providers';
 import { rateLimit, rateLimitResponse } from '@/lib/rate-limit';
 import { sanitizeText, validateTweaks } from '@/lib/validate';
 import type { ResumeRoasterTweaks } from '@/types';
-import { extractTextFromPDF } from '@/lib/pdf-parser';
+import { extractTextFromFile } from '@/lib/file-extractor';
 
 const DEFAULT_TWEAKS: ResumeRoasterTweaks = {
   intensity: 3,
@@ -81,16 +81,15 @@ export async function POST(req: Request) {
       }, { status: 400 });
     }
 
-    // Extract text from PDF
-    if (fileType === 'application/pdf' || fileName?.endsWith('.pdf')) {
-      try {
-        content = await extractTextFromPDF(buffer);
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : String(err);
-        return NextResponse.json({ error: 'FILE_PARSE_ERROR', message: `Failed to extract text from PDF. Details: ${msg}` }, { status: 400 });
-      }
-    } else {
-      return NextResponse.json({ error: 'UNSUPPORTED_FILE', message: 'Only PDF files are supported for Resume Roaster.' }, { status: 400 });
+    // Robust File Extraction
+    try {
+      content = await extractTextFromFile(buffer, fileName || 'resume', fileType || 'application/pdf');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return NextResponse.json({ 
+        error: 'FILE_PARSE_ERROR', 
+        message: `Failed to extract text from ${fileName}. ${msg}` 
+      }, { status: 400 });
     }
   }
 

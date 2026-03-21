@@ -12,7 +12,7 @@ interface FileDropzoneProps {
   disabled?: boolean;
 }
 
-export default function FileDropzone({ accept = '.pdf,.xlsx,.xls', maxSizeMb, file, onFileChange, disabled }: FileDropzoneProps) {
+export default function FileDropzone({ accept = '.pdf,.docx,.xlsx,.xls,.txt,.md,.json', maxSizeMb, file, onFileChange, disabled }: FileDropzoneProps) {
   const [dragOver, setDragOver] = useState(false);
 
   const handleFile = useCallback(
@@ -66,7 +66,7 @@ export default function FileDropzone({ accept = '.pdf,.xlsx,.xls', maxSizeMb, fi
         <p className="text-sm text-surface-600">
           <span className="text-primary font-medium">Upload</span> or drag & drop
         </p>
-        <p className="text-xs text-surface-400">Max {maxSizeMb}MB • PDF & Excel</p>
+        <p className="text-xs text-surface-400">Max {maxSizeMb}MB • PDF, Word, Text & Excel</p>
         <input type="file" accept={accept} className="hidden" onChange={onChange} disabled={disabled} />
       </label>
     </div>

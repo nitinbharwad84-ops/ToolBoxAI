@@ -79,7 +79,7 @@ export default function SummarizerPage() {
 
       {/* File Upload */}
       <div className="glass-card p-5 space-y-3">
-        <FileDropzone accept=".pdf,.xlsx,.xls" maxSizeMb={maxSizeMb} file={file} onFileChange={setFile} disabled={!!content.trim()} />
+        <FileDropzone maxSizeMb={maxSizeMb} file={file} onFileChange={setFile} disabled={!!content.trim()} />
         {!file && (
           <textarea
             ref={textareaRef}

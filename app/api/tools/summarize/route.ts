@@ -8,7 +8,7 @@ import { executeWithFallback } from '@/lib/ai-providers';
 import { rateLimit, rateLimitResponse } from '@/lib/rate-limit';
 import { sanitizeText, validateTweaks } from '@/lib/validate';
 import type { SummarizerTweaks } from '@/types';
-import { extractTextFromPDF } from '@/lib/pdf-parser';
+import { extractTextFromFile } from '@/lib/file-extractor';
 
 const DEFAULT_TWEAKS: SummarizerTweaks = {
   keyPoints: 5,
@@ -73,21 +73,23 @@ export async function POST(req: Request) {
       }, { status: 400 });
     }
 
-    // Extract text from PDF
-    if (fileType === 'application/pdf' || fileName?.endsWith('.pdf')) {
-      console.log('[API] Processing PDF upload:', fileName, fileSize, 'bytes');
-      try {
-        content = await extractTextFromPDF(buffer);
-        console.log('[API] PDF text extraction successful. Length:', content.length);
-      } catch (err: unknown) {
-        console.error('[API] PDF Parse Error:', err);
-        const msg = err instanceof Error ? err.message : String(err);
-        return NextResponse.json({ error: 'FILE_PARSE_ERROR', message: `Failed to extract text from PDF. Details: ${msg}` }, { status: 400 });
+    // Robust File Extraction
+    try {
+      content = await extractTextFromFile(buffer, fileName || 'file', fileType || 'application/octet-stream');
+      console.log(`[API] Extracted content from ${fileName}. Length: ${content?.length}`);
+    } catch (err: unknown) {
+      console.error('[API] File Extraction Error:', err);
+      const msg = err instanceof Error ? err.message : String(err);
+      
+      // Special handling for spreadsheet which is just a placeholder logic currently
+      if (msg.includes('spreadsheet')) {
+        content = `[Spreadsheet file: ${fileName}] — Spreadsheet parsing is coming soon.`;
+      } else {
+        return NextResponse.json({ 
+          error: 'FILE_PARSE_ERROR', 
+          message: `Failed to extract text from ${fileName}. ${msg}` 
+        }, { status: 400 });
       }
-    } else if (fileType?.includes('spreadsheet') || fileName?.endsWith('.xlsx') || fileName?.endsWith('.xls')) {
-      content = `[Spreadsheet file: ${fileName}] — Spreadsheet parsing is available with xlsx library integration.`;
-    } else {
-      return NextResponse.json({ error: 'UNSUPPORTED_FILE', message: 'Only PDF and Excel files are supported.' }, { status: 400 });
     }
   }
 

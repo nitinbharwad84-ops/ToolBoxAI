@@ -2,12 +2,12 @@ declare module 'pdf-parse-fork' {
   interface PDFData {
     numpages: number;
     numrender: number;
-    info: any;
-    metadata: any;
+    info: Record<string, unknown>;
+    metadata: Record<string, unknown>;
     text: string;
     version: string;
   }
 
-  function pdf(dataBuffer: Buffer | Uint8Array, options?: any): Promise<PDFData>;
+  function pdf(dataBuffer: Buffer | Uint8Array, options?: Record<string, unknown>): Promise<PDFData>;
   export = pdf;
 }
