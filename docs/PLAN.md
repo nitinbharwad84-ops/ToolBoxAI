@@ -1,32 +1,29 @@
-# Phase 30: Implement Fake Payment System (Bypass Razorpay)
+# PDF Extraction Bugfix & Resume Roaster File Upload Plan
 
-## The Goal
+## User Review Required
+The proposed changes will directly address the "Failed to extract text from PDF" error by safely importing `pdf-parse` and tracking errors. It will also duplicate the `FileDropzone` UI behavior from the Summarizer directly into the Resume Roaster.
 
-The user wants to remove the actual Razorpay checkout process and replace it with a "fake" payment system for testing/internal use. This means when a user clicks "Buy Credits" or "Subscribe", their account should instantly be updated without requiring real money or a credit card prompt.
+## Proposed Changes
 
-## The Solution (Phase 2)
-If approved, the agents will execute the following parallel fixes:
+### `app/api/tools/summarize/route.ts`
+- **[MODIFY]**: 
+  - Statically import `pdfParse` from `pdf-parse` instead of using a local dynamic `require()` which fails to bundle the necessary `pdf.js` worker processes inside Next.js.
+  - Expose the exact error instance string in the `catch` block so if extraction fails again, we know exactly WHY instead of a silent fallback message.
 
-### 1. `backend-specialist`
-*   Create new API endpoints for the fake payment system:
-    *   `/api/payments/fake-buy/route.ts`: Simulates a credit pack purchase. It will find the package (50, 200, or 500), insert a `credit_transactions` log with `amount`, `type: 'purchased'`, and update the `users` table's `credits` integer.
-    *   `/api/payments/fake-subscribe/route.ts`: Simulates a Pro subscription upgrade. It will update the `users` table setting `plan` to `'pro'`.
-*   These endpoints will be secured by Clerk authentication (`auth()`).
+### `app/api/tools/resume-roast/route.ts`
+- **[MODIFY]**:
+  - Accept `fileBase64`, `fileName`, and `fileType`. 
+  - Implement the exact same `MAX_FILE_SIZE_FREE` checks.
+  - Run the `pdfParse(buffer)` parser if the upload is a PDF, assigning the extracted text to the `content` variable.
 
-### 2. `frontend-specialist`
-*   Modify `app/dashboard/billing/page.tsx` directly.
-*   Remove the Razorpay script loading logic or JS SDK initialization.
-*   Update `handleBuyCredits`: Instead of creating a Razorpay order, it will POST to `/api/payments/fake-buy` and refresh the page or state upon success.
-*   Update `handleSubscribe`: Instead of redirecting to a Razorpay short URL, it will POST to `/api/payments/fake-subscribe` and refresh the state.
-*   Add a subtle UI indicator (e.g., toast or button text) like "Simulated Purchase Successful".
+### `app/dashboard/resume-roaster/page.tsx`
+- **[MODIFY]**:
+  - Add the File state (`const [file, setFile] = useState<File | null>(null);`).
+  - Render the `<FileDropzone />` component gracefully aligned above the textarea.
+  - Pass the array buffer to `body.fileBase64` during submission when a file is dropped.
 
-### 3. `database-architect` / `security-auditor`
-*   Review the fake API handlers to ensure they correctly use Supabase transactions.
-*   Ensure that the `credit_transactions` table gets the proper `balance_after` calculations during the fake purchase so the ledger remains mathematically sound, even without a vendor `payment_id`.
+## Verification Plan
 
-### 4. `test-engineer`
-*   Run the unified linting and Next.js build verification to ensure no dead Razorpay imports crash the edge deployment.
-
----
-**Do you approve this plan? (Y/N)**
-Y
+### Automated Tests
+- `npm run dev` and `npx next build` to guarantee no breakage in `pdf-parse` module resolution.
+- Uploading a PDF directly into the UI components to verify successful binary conversions.

@@ -7,6 +7,9 @@ import { executeWithFallback } from '@/lib/ai-providers';
 import { rateLimit, rateLimitResponse } from '@/lib/rate-limit';
 import { sanitizeText, validateTweaks } from '@/lib/validate';
 import type { ResumeRoasterTweaks } from '@/types';
+import * as pdfParseModule from 'pdf-parse';
+
+const pdfParse = typeof pdfParseModule === 'function' ? pdfParseModule : (pdfParseModule as any).default || pdfParseModule;
 
 const DEFAULT_TWEAKS: ResumeRoasterTweaks = {
   intensity: 3,
@@ -27,6 +30,8 @@ const DEFAULT_TWEAKS: ResumeRoasterTweaks = {
   persona: 'marcus',
   language: 'English',
 };
+
+const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB for Pro users Since Roaster is Pro only
 
 export async function POST(req: Request) {
   const startTime = Date.now();
@@ -54,11 +59,42 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json();
-  const content = sanitizeText(body.content);
+  let content = sanitizeText(body.content);
   const tweaks: ResumeRoasterTweaks = { ...DEFAULT_TWEAKS, ...validateTweaks(body.tweaks) };
+  let fileName: string | null = null;
+  let fileSize: number | null = null;
+  let fileType: string | null = null;
+
+  // Handle file upload (base64-encoded)
+  if (body.fileBase64 && body.fileName) {
+    const buffer = Buffer.from(body.fileBase64, 'base64');
+    fileSize = buffer.length;
+    fileName = body.fileName;
+    fileType = body.fileType ?? 'unknown';
+
+    if (fileSize > MAX_FILE_SIZE) {
+      return NextResponse.json({
+        error: 'FILE_TOO_LARGE',
+        message: 'File exceeds 25MB limit.',
+      }, { status: 400 });
+    }
+
+    // Extract text from PDF
+    if (fileType === 'application/pdf' || fileName?.endsWith('.pdf')) {
+      try {
+        const parsed = await pdfParse(buffer);
+        content = parsed.text;
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return NextResponse.json({ error: 'FILE_PARSE_ERROR', message: `Failed to extract text from PDF. Details: ${msg}` }, { status: 400 });
+      }
+    } else {
+      return NextResponse.json({ error: 'UNSUPPORTED_FILE', message: 'Only PDF files are supported for Resume Roaster.' }, { status: 400 });
+    }
+  }
 
   if (!content) {
-    return NextResponse.json({ error: 'EMPTY_INPUT', message: 'Please paste your resume content.' }, { status: 400 });
+    return NextResponse.json({ error: 'EMPTY_INPUT', message: 'Please paste your resume content or upload a PDF.' }, { status: 400 });
   }
 
   const cost = calculateCreditCost('resume_roaster', tweaks);
@@ -121,6 +157,9 @@ export async function POST(req: Request) {
         credits_used: aiResult.deductCredits ? cost : 0,
         processing_time_ms: Date.now() - startTime,
         status: 'success',
+        file_name: fileName,
+        file_size: fileSize,
+        file_type: fileType,
       })
       .select('id')
       .single();

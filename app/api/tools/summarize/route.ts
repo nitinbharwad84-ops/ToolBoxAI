@@ -7,6 +7,9 @@ import { executeWithFallback } from '@/lib/ai-providers';
 import { rateLimit, rateLimitResponse } from '@/lib/rate-limit';
 import { sanitizeText, validateTweaks } from '@/lib/validate';
 import type { SummarizerTweaks } from '@/types';
+import * as pdfParseModule from 'pdf-parse';
+
+const pdfParse = typeof pdfParseModule === 'function' ? pdfParseModule : (pdfParseModule as any).default || pdfParseModule;
 
 const DEFAULT_TWEAKS: SummarizerTweaks = {
   keyPoints: 5,
@@ -66,12 +69,11 @@ export async function POST(req: Request) {
     // Extract text from PDF
     if (fileType === 'application/pdf' || fileName?.endsWith('.pdf')) {
       try {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const pdfParse = require('pdf-parse') as (buf: Buffer) => Promise<{ text: string }>;
         const parsed = await pdfParse(buffer);
         content = parsed.text;
-      } catch {
-        return NextResponse.json({ error: 'FILE_PARSE_ERROR', message: 'Failed to extract text from PDF.' }, { status: 400 });
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return NextResponse.json({ error: 'FILE_PARSE_ERROR', message: `Failed to extract text from PDF. Details: ${msg}` }, { status: 400 });
       }
     } else if (fileType?.includes('spreadsheet') || fileName?.endsWith('.xlsx') || fileName?.endsWith('.xls')) {
       content = `[Spreadsheet file: ${fileName}] — Spreadsheet parsing is available with xlsx library integration.`;

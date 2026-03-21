@@ -13,6 +13,7 @@ import TweakPanel from '@/components/tools/TweakPanel';
 import MultiToggle from '@/components/tools/MultiToggle';
 import LiveCreditCost from '@/components/tools/LiveCreditCost';
 import PresetManager from '@/components/tools/PresetManager';
+import FileDropzone from '@/components/tools/FileDropzone';
 import CheckboxGroup from '@/components/tools/CheckboxGroup';
 import CharCounter from '@/components/ui/CharCounter';
 import ResumeRoasterResult from '@/components/tools/ResultCard/ResumeRoasterResult';
@@ -40,20 +41,32 @@ export default function ResumeRoasterPage() {
     successTitle: 'Roast complete 🔥',
   });
   const [resumeText, setResumeText] = useState('');
+  const [file, setFile] = useState<File | null>(null);
   const [tweaks, setTweaks] = useState<ResumeRoasterTweaks>(DEFAULT_TWEAKS);
   const [validationError, setValidationError] = useState('');
 
   const creditCost = calculateCreditCost('resume_roaster', tweaks);
   const isPro = user?.plan === 'pro';
+  const maxSizeMb = isPro ? 25 : 5;
   const { ref: textareaRef, resize } = useAutoResize(192, 500);
 
   const handleSubmit = useCallback(async () => {
-    if (!resumeText.trim()) { setValidationError('Please paste your resume content.'); return; }
+    if (!resumeText.trim() && !file) { setValidationError('Please paste your resume content or upload a PDF.'); return; }
     setValidationError('');
-    await submit({ content: resumeText, tweaks });
-  }, [resumeText, tweaks, submit]);
 
-  useKeyboardShortcut('Enter', handleSubmit, { ctrlOrMeta: true, disabled: loading || !resumeText.trim() });
+    const body: Record<string, unknown> = { tweaks };
+    if (file) {
+      const buffer = await file.arrayBuffer();
+      body.fileBase64 = Buffer.from(buffer).toString('base64');
+      body.fileName = file.name;
+      body.fileType = file.type;
+    } else {
+      body.content = resumeText;
+    }
+    await submit(body);
+  }, [resumeText, file, tweaks, submit]);
+
+  useKeyboardShortcut('Enter', handleSubmit, { ctrlOrMeta: true, disabled: loading || (!resumeText.trim() && !file) });
 
   const displayError = validationError || error;
 
@@ -90,16 +103,21 @@ export default function ResumeRoasterPage() {
       </div>
 
       {/* Input */}
-      <div className="glass-card p-5">
-        <textarea
-          ref={textareaRef}
-          value={resumeText} onChange={(e) => { setResumeText(e.target.value); resize(); }}
-          placeholder="Paste your resume content here..."
-          className="w-full min-h-[192px] bg-surface-200/50 border border-surface-300/50 rounded-lg px-4 py-3 text-surface-700 placeholder-surface-500 resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-        />
-        <div className="flex justify-end mt-1.5">
-          <CharCounter current={resumeText.length} max={20000} />
-        </div>
+      <div className="glass-card p-5 space-y-3">
+        <FileDropzone accept=".pdf" maxSizeMb={maxSizeMb} file={file} onFileChange={setFile} disabled={!!resumeText.trim()} />
+        {!file && (
+          <textarea
+            ref={textareaRef}
+            value={resumeText} onChange={(e) => { setResumeText(e.target.value); resize(); }}
+            placeholder="Or paste your resume content here..."
+            className="w-full min-h-[192px] bg-surface-200/50 border border-surface-300/50 rounded-lg px-4 py-3 text-surface-700 placeholder-surface-500 resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+          />
+        )}
+        {!file && resumeText.length > 0 && (
+          <div className="flex justify-end mt-1.5">
+            <CharCounter current={resumeText.length} max={20000} />
+          </div>
+        )}
       </div>
 
       {/* Tweak Panel */}
