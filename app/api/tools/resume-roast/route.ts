@@ -7,9 +7,7 @@ import { executeWithFallback } from '@/lib/ai-providers';
 import { rateLimit, rateLimitResponse } from '@/lib/rate-limit';
 import { sanitizeText, validateTweaks } from '@/lib/validate';
 import type { ResumeRoasterTweaks } from '@/types';
-import * as pdfParseModule from 'pdf-parse';
-
-const pdfParse = typeof pdfParseModule === 'function' ? pdfParseModule : (pdfParseModule as any).default || pdfParseModule;
+import { PDFParse } from 'pdf-parse';
 
 const DEFAULT_TWEAKS: ResumeRoasterTweaks = {
   intensity: 3,
@@ -82,7 +80,8 @@ export async function POST(req: Request) {
     // Extract text from PDF
     if (fileType === 'application/pdf' || fileName?.endsWith('.pdf')) {
       try {
-        const parsed = await pdfParse(buffer);
+        const parser = new PDFParse({ data: buffer });
+        const parsed = await parser.getText();
         content = parsed.text;
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
