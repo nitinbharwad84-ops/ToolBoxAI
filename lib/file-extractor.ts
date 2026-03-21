@@ -1,5 +1,6 @@
 import { extractTextFromPDF } from './pdf-parser';
 import * as mammoth from 'mammoth';
+import * as XLSX from 'xlsx';
 
 export async function extractTextFromFile(
   buffer: Buffer,
@@ -28,9 +29,21 @@ export async function extractTextFromFile(
     return buffer.toString('utf-8');
   }
 
-  // 4. Fallback or spreadsheet (spreadsheet is handled separately if needed)
-  if (fileType.includes('spreadsheet') || extension === 'xlsx' || extension === 'xls') {
-    throw new Error('Spreadsheet extraction requires specialized processing (xlsx).');
+  // 4. Spreadsheet (XLSX, XLS, CSV) Support
+  if (fileType.includes('spreadsheet') || extension === 'xlsx' || extension === 'xls' || extension === 'csv') {
+    const workbook = XLSX.read(buffer, { type: 'buffer' });
+    let fullText = '';
+    
+    workbook.SheetNames.forEach((sheetName) => {
+      const worksheet = workbook.Sheets[sheetName];
+      // Convert sheet to text (tab-separated or similar)
+      const sheetText = XLSX.utils.sheet_to_txt(worksheet);
+      if (sheetText.trim()) {
+        fullText += `--- Sheet: ${sheetName} ---\n${sheetText}\n\n`;
+      }
+    });
+
+    return fullText.trim() || 'No text found in spreadsheet.';
   }
 
   throw new Error('Unsupported file format.');
