@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { ClerkProvider } from '@clerk/nextjs';
+import { dark } from '@clerk/themes';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -39,7 +40,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <ClerkProvider appearance={{ variables: { colorPrimary: '#0ea5e9', colorBackground: '#18181b', colorText: '#e4e4e7' } }}>
+    <ClerkProvider
+      appearance={{
+        baseTheme: dark,
+        variables: {
+          colorPrimary: '#0ea5e9',
+          colorBackground: '#18181b',
+          colorText: '#e4e4e7',
+          colorTextSecondary: '#a1a1aa',
+          colorInputBackground: '#27272a',
+          colorInputText: '#e4e4e7',
+        }
+      }}
+    >
       <html lang="en" className="dark">
         <head>
           <link rel="preconnect" href="https://fonts.googleapis.com" />
