@@ -40,7 +40,15 @@ export function useToolSubmit({ endpoint, toolName, successTitle }: UseToolSubmi
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
-      const data = await res.json();
+      
+      const responseText = await res.text();
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        console.error('API Response was not JSON:', res.status, responseText.slice(0, 500));
+        throw new Error(`Server returned HTML or invalid JSON (Status ${res.status})`);
+      }
 
       if (!res.ok) {
         const msg = data.message || data.error || `${toolName} failed`;
