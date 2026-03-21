@@ -11,8 +11,8 @@ export async function POST(req: Request) {
 
     const { data: user, error: userError } = await getServiceSupabase()
       .from('users')
-      .select('credits')
-      .eq('id', userId)
+      .select('id, credits')
+      .eq('clerk_id', userId)
       .single();
 
     if (userError || !user) throw new Error('User not found in db');
@@ -30,12 +30,13 @@ export async function POST(req: Request) {
         subscription_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         updated_at: new Date().toISOString() 
       })
-      .eq('id', userId);
+      .eq('clerk_id', userId);
 
     await getServiceSupabase()
       .from('credit_transactions')
       .insert({
-        user_id: userId,
+        user_id: user.id,
+        clerk_id: userId,
         amount: 1000,
         type: 'granted',
         description: `Pro Plan Upgrade (${billingCycle}) - 1000 Credits (Simulated)`,

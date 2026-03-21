@@ -19,8 +19,8 @@ export async function POST(req: Request) {
 
     const { data: user, error: userError } = await getServiceSupabase()
       .from('users')
-      .select('credits')
-      .eq('id', userId)
+      .select('id, credits')
+      .eq('clerk_id', userId)
       .single();
 
     if (userError || !user) throw new Error('User not found in db');
@@ -31,13 +31,14 @@ export async function POST(req: Request) {
     await getServiceSupabase()
       .from('users')
       .update({ credits: newBalance, updated_at: new Date().toISOString() })
-      .eq('id', userId);
+      .eq('clerk_id', userId);
 
     // Log transaction
     await getServiceSupabase()
       .from('credit_transactions')
       .insert({
-        user_id: userId,
+        user_id: user.id,
+        clerk_id: userId,
         amount: creditsToAdd,
         type: 'purchased',
         description: `Purchased ${creditsToAdd} credits (Simulated Checkout)`,
