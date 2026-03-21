@@ -1,9 +1,11 @@
 'use client';
 
 import { useUser } from '@/hooks/useUser';
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { cn, formatCredits } from '@/lib/utils';
-import { CreditCard, Zap, Crown, Check, Shield, Loader2 } from 'lucide-react';
+import TransactionRow from '@/components/billing/TransactionRow';
+import { CreditCard, Zap, Crown, Check, Shield, Loader2, Receipt } from 'lucide-react';
+import type { CreditTransaction } from '@/types';
 
 const CREDIT_PACKS = [
   { id: 'pack_50', name: 'Starter', credits: 50, priceInr: '₹99', desc: 'Try it out' },
@@ -26,6 +28,24 @@ export default function BillingPage() {
   const [buyingPack, setBuyingPack] = useState<string | null>(null);
   const [subscribing, setSubscribing] = useState(false);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
+  const [transactions, setTransactions] = useState<CreditTransaction[]>([]);
+  const [txTotal, setTxTotal] = useState(0);
+  const [txLoading, setTxLoading] = useState(true);
+
+  const fetchTransactions = useCallback(async (offset = 0) => {
+    setTxLoading(true);
+    try {
+      const res = await fetch(`/api/user/transactions?limit=10&offset=${offset}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      setTransactions((prev) => offset === 0 ? data.items : [...prev, ...data.items]);
+      setTxTotal(data.total);
+    } finally {
+      setTxLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchTransactions(); }, [fetchTransactions]);
 
   const handleBuyCredits = async (packageId: string) => {
     setBuyingPack(packageId);
@@ -180,6 +200,52 @@ export default function BillingPage() {
               </button>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Transaction History */}
+      <div className="space-y-3">
+        <h2 className="text-lg font-semibold text-surface-800 flex items-center gap-2">
+          <Receipt className="w-5 h-5 text-primary" /> Transaction History
+        </h2>
+        <div className="glass-card p-4">
+          {txLoading && transactions.length === 0 ? (
+            <div className="flex justify-center py-6">
+              <Loader2 className="w-5 h-5 animate-spin text-surface-400" />
+            </div>
+          ) : transactions.length === 0 ? (
+            <p className="text-center text-sm text-surface-500 py-6">No transactions yet</p>
+          ) : (
+            <>
+              <div className="flex items-center gap-3 pb-2 mb-1 border-b border-surface-300/30 text-[10px] font-medium text-surface-400 uppercase tracking-wider">
+                <span className="w-24">Type</span>
+                <span className="flex-1">Description</span>
+                <span className="w-16 text-right">Amount</span>
+                <span className="w-16 text-right">Balance</span>
+                <span className="w-20 text-right">Date</span>
+              </div>
+              {transactions.map((tx) => (
+                <TransactionRow
+                  key={tx.id}
+                  type={tx.type}
+                  amount={tx.amount}
+                  description={tx.description}
+                  createdAt={tx.created_at}
+                  balanceAfter={tx.balance_after}
+                />
+              ))}
+              {transactions.length < txTotal && (
+                <button
+                  onClick={() => fetchTransactions(transactions.length)}
+                  disabled={txLoading}
+                  className="mt-3 w-full py-2 rounded-lg text-xs font-medium bg-surface-200/50 text-surface-500 hover:bg-surface-300/50 transition-colors flex items-center justify-center gap-1.5"
+                >
+                  {txLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+                  Load more ({txTotal - transactions.length} remaining)
+                </button>
+              )}
+            </>
+          )}
         </div>
       </div>
 

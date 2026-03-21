@@ -1,8 +1,8 @@
 'use client';
 
 import ProviderBadge from '@/components/dashboard/ProviderBadge';
-import { Copy, Check, RotateCcw } from 'lucide-react';
-import { useState } from 'react';
+import CopyButton from '@/components/ui/CopyButton';
+import { RotateCcw } from 'lucide-react';
 
 interface SummarizerResultProps {
   result: Record<string, unknown>;
@@ -12,23 +12,13 @@ interface SummarizerResultProps {
 }
 
 export default function SummarizerResult({ result, provider, showProvider, onReset }: SummarizerResultProps) {
-  const [copied, setCopied] = useState(false);
-
-  const copy = () => {
-    navigator.clipboard.writeText(JSON.stringify(result, null, 2));
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
   return (
     <div className="glass-card p-5 space-y-4 animate-slide-in">
       <div className="flex items-center justify-between">
         <h2 className="font-semibold text-surface-800">📝 Summary</h2>
         <div className="flex items-center gap-2">
           <ProviderBadge provider={provider ?? ''} show={showProvider} />
-          <button onClick={copy} className="p-1.5 rounded-md hover:bg-surface-200/50 transition-colors">
-            {copied ? <Check className="w-4 h-4 text-success" /> : <Copy className="w-4 h-4 text-surface-500" />}
-          </button>
+          <CopyButton text={JSON.stringify(result, null, 2)} iconOnly />
         </div>
       </div>
 

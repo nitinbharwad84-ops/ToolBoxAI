@@ -42,8 +42,8 @@ export async function POST(req: Request) {
   if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
   const body = await req.json();
-  let content = body.content?.trim() ?? '';
-  const tweaks: SummarizerTweaks = { ...DEFAULT_TWEAKS, ...body.tweaks };
+  let content = sanitizeText(body.content);
+  const tweaks: SummarizerTweaks = { ...DEFAULT_TWEAKS, ...validateTweaks(body.tweaks) };
   let fileName: string | null = null;
   let fileSize: number | null = null;
   let fileType: string | null = null;

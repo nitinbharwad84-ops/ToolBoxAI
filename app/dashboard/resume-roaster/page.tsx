@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { useKeyboardShortcut } from '@/hooks/useKeyboardShortcut';
 import { useUser } from '@/hooks/useUser';
+import { useToolSubmit } from '@/hooks/useToolSubmit';
 import { calculateCreditCost } from '@/lib/credit-calculator';
 import type { ResumeRoasterTweaks } from '@/types';
 import { cn } from '@/lib/utils';
@@ -29,34 +31,28 @@ const PERSONA_OPTIONS = [
 ];
 
 export default function ResumeRoasterPage() {
-  const { user, refetch } = useUser();
+  const { user } = useUser();
+  const { result, provider, loading, error, submit, reset } = useToolSubmit({
+    endpoint: '/api/tools/resume-roast',
+    toolName: 'Resume Roaster',
+    successTitle: 'Roast complete 🔥',
+  });
   const [resumeText, setResumeText] = useState('');
   const [tweaks, setTweaks] = useState<ResumeRoasterTweaks>(DEFAULT_TWEAKS);
-  const [result, setResult] = useState<Record<string, unknown> | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [provider, setProvider] = useState('');
+  const [validationError, setValidationError] = useState('');
 
   const creditCost = calculateCreditCost('resume_roaster', tweaks);
   const isPro = user?.plan === 'pro';
 
   const handleSubmit = useCallback(async () => {
-    if (!resumeText.trim()) { setError('Please paste your resume content.'); return; }
-    setLoading(true); setError(''); setResult(null);
-    try {
-      const res = await fetch('/api/tools/resume-roast', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: resumeText, tweaks }),
-      });
-      const data = await res.json();
-      if (!res.ok) { setError(data.message || data.error); return; }
-      setResult(data.result); setProvider(data.provider); refetch();
-    } catch {
-      setError('Something went wrong. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  }, [resumeText, tweaks, refetch]);
+    if (!resumeText.trim()) { setValidationError('Please paste your resume content.'); return; }
+    setValidationError('');
+    await submit({ content: resumeText, tweaks });
+  }, [resumeText, tweaks, submit]);
+
+  useKeyboardShortcut('Enter', handleSubmit, { ctrlOrMeta: true, disabled: loading || !resumeText.trim() });
+
+  const displayError = validationError || error;
 
   /* Pro gate */
   if (!isPro && user !== null) {
@@ -66,10 +62,10 @@ export default function ResumeRoasterPage() {
           <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-orange-500/20 to-red-500/20 flex items-center justify-center mx-auto">
             <Lock className="w-7 h-7 text-orange-400" />
           </div>
-          <h2 className="text-xl font-bold text-surface-800">Resume Roaster is Pro Only</h2>
-          <p className="text-sm text-surface-500">Upgrade to Pro to get brutal resume feedback from our AI reviewers.</p>
-          <a href="/dashboard/billing" className="block py-2.5 rounded-lg bg-gradient-to-r from-primary to-accent text-white font-medium hover:opacity-90 transition-opacity">
-            Upgrade to Pro — ₹999/mo
+          <h2 className="text-xl font-bold text-surface-800">Pro Feature</h2>
+          <p className="text-surface-500 text-sm">Resume Roaster requires a Pro plan. Upgrade to unlock brutal honest feedback on your resume.</p>
+          <a href="/dashboard/billing" className="inline-block px-6 py-2.5 rounded-lg bg-gradient-to-r from-primary to-accent text-white font-medium text-sm hover:opacity-90 transition-opacity">
+            Upgrade to Pro
           </a>
         </div>
       </div>
@@ -85,14 +81,13 @@ export default function ResumeRoasterPage() {
         </div>
         <div>
           <h1 className="text-xl font-bold text-surface-800">Resume Roaster</h1>
-          <p className="text-sm text-surface-500">Get brutally honest resume feedback</p>
+          <p className="text-sm text-surface-500">Get brutally honest feedback on your resume</p>
         </div>
         <LiveCreditCost cost={creditCost} className="ml-auto" />
       </div>
 
       {/* Input */}
       <div className="glass-card p-5">
-        <label className="block text-sm font-medium text-surface-600 mb-2">Paste your resume text</label>
         <textarea
           value={resumeText} onChange={(e) => setResumeText(e.target.value)}
           placeholder="Paste your resume content here..."
@@ -103,22 +98,23 @@ export default function ResumeRoasterPage() {
       {/* Tweak Panel */}
       <TweakPanel creditCost={creditCost} onReset={() => setTweaks(DEFAULT_TWEAKS)}>
         <PresetManager
-          toolName="resume_roaster" isPro={isPro ?? false}
+          toolName="resume_roaster" isPro={isPro}
           currentConfig={tweaks as unknown as Record<string, unknown>}
           onLoad={(c) => setTweaks(c as unknown as ResumeRoasterTweaks)}
         />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
+            <label className="block text-xs font-medium text-surface-500 mb-1.5">Persona</label>
+            <MultiToggle options={PERSONA_OPTIONS} value={tweaks.persona} onChange={(v) => setTweaks(p => ({ ...p, persona: v as ResumeRoasterTweaks['persona'] }))} />
+          </div>
+          <div>
             <label className="block text-xs font-medium text-surface-500 mb-1.5">
-              Roast Intensity: {['', 'Gentle', 'Mild', 'Standard', 'Harsh', 'Savage'][tweaks.intensity]}
+              Intensity: {tweaks.intensity}/5
+              {tweaks.intensity > 3 && <span className="text-primary"> (+{tweaks.intensity - 3} cr)</span>}
             </label>
             <input type="range" min={1} max={5} value={tweaks.intensity}
               onChange={(e) => setTweaks(p => ({ ...p, intensity: parseInt(e.target.value) }))}
               className="w-full accent-primary" />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-surface-500 mb-1.5">Reviewer Persona</label>
-            <MultiToggle options={PERSONA_OPTIONS} value={tweaks.persona} onChange={(v) => setTweaks(p => ({ ...p, persona: v as ResumeRoasterTweaks['persona'] }))} />
           </div>
           <div>
             <label className="block text-xs font-medium text-surface-500 mb-1.5">Target Role</label>
@@ -133,9 +129,9 @@ export default function ResumeRoasterPage() {
             <MultiToggle options={COMPANY_OPTIONS} value={tweaks.companyTarget} onChange={(v) => setTweaks(p => ({ ...p, companyTarget: v as ResumeRoasterTweaks['companyTarget'] }))} />
           </div>
           <div>
-            <label className="block text-xs font-medium text-surface-500 mb-1.5">Priority Fixes: {tweaks.numFixes}</label>
+            <label className="block text-xs font-medium text-surface-500 mb-1.5">Fixes to Suggest: {tweaks.numFixes}</label>
             <MultiToggle
-              options={[{ value: '3', label: '3' }, { value: '5', label: '5 (+2cr)' }, { value: '10', label: '10 (+5cr)' }]}
+              options={[1, 3, 5, 7].map(n => ({ value: String(n), label: String(n) }))}
               value={String(tweaks.numFixes)}
               onChange={(v) => setTweaks(p => ({ ...p, numFixes: parseInt(v) }))}
             />
@@ -148,14 +144,14 @@ export default function ResumeRoasterPage() {
       </TweakPanel>
 
       {/* Error */}
-      {error && <div className="glass-card border-danger/30 bg-danger/5 p-4 text-sm text-danger">{error}</div>}
+      {displayError && <div className="glass-card border-danger/30 bg-danger/5 p-4 text-sm text-danger">{displayError}</div>}
 
       {/* Submit */}
       <button onClick={handleSubmit} disabled={loading || !resumeText.trim()}
         className={cn('w-full py-3 rounded-lg font-medium text-white transition-all duration-300 flex items-center justify-center gap-2',
           loading || !resumeText.trim() ? 'bg-surface-300 cursor-not-allowed' : 'bg-gradient-to-r from-primary to-accent hover:opacity-90 glow-primary')}
       >
-        {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Roasting...</> : <><Send className="w-4 h-4" /> Roast Resume — {creditCost} credits</>}
+        {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Roasting...</> : <><Send className="w-4 h-4" /> Roast Resume — {creditCost} credits <kbd className="ml-2 text-[10px] opacity-60 px-1 py-0.5 rounded bg-white/10">⌘↵</kbd></>}
       </button>
 
       {/* Result */}
@@ -163,7 +159,7 @@ export default function ResumeRoasterPage() {
         <ResumeRoasterResult
           result={result} provider={provider}
           showProvider={user?.show_provider_badge}
-          onReset={() => { setResult(null); setResumeText(''); }}
+          onReset={() => { reset(); setResumeText(''); }}
         />
       )}
     </div>

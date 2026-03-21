@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { useKeyboardShortcut } from '@/hooks/useKeyboardShortcut';
 import { useUser } from '@/hooks/useUser';
+import { useToolSubmit } from '@/hooks/useToolSubmit';
 import { calculateCreditCost } from '@/lib/credit-calculator';
 import type { EmailPacifierTweaks } from '@/types';
 import { cn } from '@/lib/utils';
@@ -22,33 +24,27 @@ const REL_OPTIONS = ['colleague', 'manager', 'report', 'client', 'vendor', 'stra
 const GOAL_OPTIONS = ['resolve', 'apology', 'urgent', 'boundary', 'escalate'].map(v => ({ value: v, label: v }));
 
 export default function EmailPacifierPage() {
-  const { user, refetch } = useUser();
+  const { user } = useUser();
+  const { result, provider, loading, error, submit, reset } = useToolSubmit({
+    endpoint: '/api/tools/email-pacify',
+    toolName: 'Email Pacifier',
+    successTitle: 'Email transformed',
+  });
   const [email, setEmail] = useState('');
   const [tweaks, setTweaks] = useState<EmailPacifierTweaks>(DEFAULT_TWEAKS);
-  const [result, setResult] = useState<Record<string, unknown> | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [provider, setProvider] = useState('');
+  const [validationError, setValidationError] = useState('');
 
   const creditCost = calculateCreditCost('email_pacifier', tweaks);
 
   const handleSubmit = useCallback(async () => {
-    if (!email.trim()) { setError('Please paste your email content.'); return; }
-    setLoading(true); setError(''); setResult(null);
-    try {
-      const res = await fetch('/api/tools/email-pacify', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, tweaks }),
-      });
-      const data = await res.json();
-      if (!res.ok) { setError(data.message || data.error); return; }
-      setResult(data.result); setProvider(data.provider); refetch();
-    } catch {
-      setError('Something went wrong. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  }, [email, tweaks, refetch]);
+    if (!email.trim()) { setValidationError('Please paste your email content.'); return; }
+    setValidationError('');
+    await submit({ email, tweaks });
+  }, [email, tweaks, submit]);
+
+  useKeyboardShortcut('Enter', handleSubmit, { ctrlOrMeta: true, disabled: loading || !email.trim() });
+
+  const displayError = validationError || error;
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
@@ -59,17 +55,16 @@ export default function EmailPacifierPage() {
         </div>
         <div>
           <h1 className="text-xl font-bold text-surface-800">Email Pacifier</h1>
-          <p className="text-sm text-surface-500">Transform aggressive emails into professional ones</p>
+          <p className="text-sm text-surface-500">Transform aggressive emails into professional responses</p>
         </div>
         <LiveCreditCost cost={creditCost} className="ml-auto" />
       </div>
 
       {/* Input */}
       <div className="glass-card p-5">
-        <label className="block text-sm font-medium text-surface-600 mb-2">Paste the email to transform</label>
         <textarea
           value={email} onChange={(e) => setEmail(e.target.value)}
-          placeholder="Paste the email you want to make more professional..."
+          placeholder="Paste the angry/aggressive email here..."
           className="w-full h-40 bg-surface-200/50 border border-surface-300/50 rounded-lg px-4 py-3 text-surface-700 placeholder-surface-500 resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
         />
       </div>
@@ -83,7 +78,7 @@ export default function EmailPacifierPage() {
         />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-medium text-surface-500 mb-1.5">Output Tone</label>
+            <label className="block text-xs font-medium text-surface-500 mb-1.5">Tone</label>
             <MultiToggle options={TONE_OPTIONS} value={tweaks.tone} onChange={(v) => setTweaks(p => ({ ...p, tone: v as EmailPacifierTweaks['tone'] }))} />
           </div>
           <div>
@@ -91,46 +86,48 @@ export default function EmailPacifierPage() {
             <MultiToggle options={REL_OPTIONS} value={tweaks.relationship} onChange={(v) => setTweaks(p => ({ ...p, relationship: v as EmailPacifierTweaks['relationship'] }))} />
           </div>
           <div>
-            <label className="block text-xs font-medium text-surface-500 mb-1.5">Email Goal</label>
+            <label className="block text-xs font-medium text-surface-500 mb-1.5">Goal</label>
             <MultiToggle options={GOAL_OPTIONS} value={tweaks.goal} onChange={(v) => setTweaks(p => ({ ...p, goal: v as EmailPacifierTweaks['goal'] }))} />
           </div>
           <div>
             <label className="block text-xs font-medium text-surface-500 mb-1.5">
-              Alternatives: {tweaks.alternatives}
-              {tweaks.alternatives > 1 && <span className="text-primary"> (+{(tweaks.alternatives - 1) * 2} cr)</span>}
+              Response Length: {['', 'Very Short', 'Short', 'Medium', 'Long', 'Detailed'][tweaks.length]}
             </label>
-            <MultiToggle
-              options={[{ value: '1', label: '1' }, { value: '2', label: '2' }, { value: '3', label: '3' }]}
-              value={String(tweaks.alternatives)} onChange={(v) => setTweaks(p => ({ ...p, alternatives: parseInt(v) }))}
-            />
+            <input type="range" min={1} max={5} value={tweaks.length}
+              onChange={(e) => setTweaks(p => ({ ...p, length: parseInt(e.target.value) }))}
+              className="w-full accent-primary" />
           </div>
         </div>
-        <div>
-          <label className="block text-xs font-medium text-surface-500 mb-1.5">Additional Context (optional)</label>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <input
             value={tweaks.context} onChange={(e) => setTweaks(p => ({ ...p, context: e.target.value }))}
-            placeholder="e.g., We've had this ongoing project delay..."
-            className="w-full bg-surface-200/50 border border-surface-300/50 rounded-md px-3 py-2 text-sm text-surface-700 placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-primary/50"
+            placeholder="Extra context (optional)"
+            className="bg-surface-200/50 border border-surface-300/50 rounded-lg px-3 py-2 text-sm text-surface-700 placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-primary/50"
+          />
+          <input
+            value={tweaks.senderName} onChange={(e) => setTweaks(p => ({ ...p, senderName: e.target.value }))}
+            placeholder="Your name (optional)"
+            className="bg-surface-200/50 border border-surface-300/50 rounded-lg px-3 py-2 text-sm text-surface-700 placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-primary/50"
           />
         </div>
       </TweakPanel>
 
       {/* Error */}
-      {error && <div className="glass-card border-danger/30 bg-danger/5 p-4 text-sm text-danger">{error}</div>}
+      {displayError && <div className="glass-card border-danger/30 bg-danger/5 p-4 text-sm text-danger">{displayError}</div>}
 
       {/* Submit */}
       <button onClick={handleSubmit} disabled={loading || !email.trim()}
         className={cn('w-full py-3 rounded-lg font-medium text-white transition-all duration-300 flex items-center justify-center gap-2',
           loading || !email.trim() ? 'bg-surface-300 cursor-not-allowed' : 'bg-gradient-to-r from-primary to-accent hover:opacity-90 glow-primary')}
       >
-        {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</> : <><Send className="w-4 h-4" /> Transform Email — {creditCost} credits</>}
+        {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</> : <><Send className="w-4 h-4" /> Transform Email — {creditCost} credits <kbd className="ml-2 text-[10px] opacity-60 px-1 py-0.5 rounded bg-white/10">⌘↵</kbd></>}
       </button>
 
       {/* Result */}
       {result && (
         <EmailPacifierResult
           result={result} provider={provider}
-          showProvider={user?.show_provider_badge} onReset={() => { setResult(null); setEmail(''); }}
+          showProvider={user?.show_provider_badge} onReset={() => { reset(); setEmail(''); }}
         />
       )}
     </div>

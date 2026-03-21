@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { useKeyboardShortcut } from '@/hooks/useKeyboardShortcut';
 import { useUser } from '@/hooks/useUser';
+import { useToolSubmit } from '@/hooks/useToolSubmit';
 import { calculateCreditCost } from '@/lib/credit-calculator';
 import type { SummarizerTweaks } from '@/types';
 import { cn } from '@/lib/utils';
@@ -24,21 +26,23 @@ const STYLE_OPTIONS = ['bullet', 'numbered', 'prose', 'executive', 'eli5'].map(v
 const AUDIENCE_OPTIONS = ['general', 'executive', 'technical', 'student', 'legal'].map(v => ({ value: v, label: v }));
 
 export default function SummarizerPage() {
-  const { user, refetch } = useUser();
+  const { user } = useUser();
+  const { result, provider, loading, error, submit, reset } = useToolSubmit({
+    endpoint: '/api/tools/summarize',
+    toolName: 'Summarizer',
+    successTitle: 'Summary ready',
+  });
   const [content, setContent] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [tweaks, setTweaks] = useState<SummarizerTweaks>(DEFAULT_TWEAKS);
-  const [result, setResult] = useState<Record<string, unknown> | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [provider, setProvider] = useState('');
+  const [validationError, setValidationError] = useState('');
 
   const creditCost = calculateCreditCost('summarizer', tweaks);
   const maxSizeMb = user?.plan === 'pro' ? 25 : 5;
 
   const handleSubmit = useCallback(async () => {
-    if (!content.trim() && !file) { setError('Please paste content or upload a file.'); return; }
-    setLoading(true); setError(''); setResult(null);
+    if (!content.trim() && !file) { setValidationError('Please paste content or upload a file.'); return; }
+    setValidationError('');
 
     const body: Record<string, unknown> = { tweaks };
     if (file) {
@@ -49,21 +53,12 @@ export default function SummarizerPage() {
     } else {
       body.content = content;
     }
+    await submit(body);
+  }, [content, file, tweaks, submit]);
 
-    try {
-      const res = await fetch('/api/tools/summarize', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      const data = await res.json();
-      if (!res.ok) { setError(data.message || data.error); return; }
-      setResult(data.result); setProvider(data.provider); refetch();
-    } catch {
-      setError('Something went wrong.');
-    } finally {
-      setLoading(false);
-    }
-  }, [content, file, tweaks, refetch]);
+  useKeyboardShortcut('Enter', handleSubmit, { ctrlOrMeta: true, disabled: loading || (!content.trim() && !file) });
+
+  const displayError = validationError || error;
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
@@ -135,14 +130,14 @@ export default function SummarizerPage() {
       </TweakPanel>
 
       {/* Error */}
-      {error && <div className="glass-card border-danger/30 bg-danger/5 p-4 text-sm text-danger">{error}</div>}
+      {displayError && <div className="glass-card border-danger/30 bg-danger/5 p-4 text-sm text-danger">{displayError}</div>}
 
       {/* Submit */}
       <button onClick={handleSubmit} disabled={loading || (!content.trim() && !file)}
         className={cn('w-full py-3 rounded-lg font-medium text-white transition-all duration-300 flex items-center justify-center gap-2',
           loading || (!content.trim() && !file) ? 'bg-surface-300 cursor-not-allowed' : 'bg-gradient-to-r from-primary to-accent hover:opacity-90 glow-primary')}
       >
-        {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Summarizing...</> : <><Send className="w-4 h-4" /> Summarize — {creditCost} credits</>}
+        {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Summarizing...</> : <><Send className="w-4 h-4" /> Summarize — {creditCost} credits <kbd className="ml-2 text-[10px] opacity-60 px-1 py-0.5 rounded bg-white/10">⌘↵</kbd></>}
       </button>
 
       {/* Result */}
@@ -150,7 +145,7 @@ export default function SummarizerPage() {
         <SummarizerResult
           result={result} provider={provider}
           showProvider={user?.show_provider_badge}
-          onReset={() => { setResult(null); setContent(''); setFile(null); }}
+          onReset={() => { reset(); setContent(''); setFile(null); }}
         />
       )}
     </div>
