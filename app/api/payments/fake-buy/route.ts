@@ -34,16 +34,21 @@ export async function POST(req: Request) {
       .eq('clerk_id', userId);
 
     // Log transaction
-    await getServiceSupabase()
+    const { error: txError } = await getServiceSupabase()
       .from('credit_transactions')
       .insert({
         user_id: user.id,
         clerk_id: userId,
         amount: creditsToAdd,
-        type: 'purchased',
+        type: 'purchase',
         description: `Purchased ${creditsToAdd} credits (Simulated Checkout)`,
         balance_after: newBalance
       });
+
+    if (txError) {
+      console.error('Failed to log fake purchase transaction:', txError);
+      throw new Error('Transaction logging failed');
+    }
 
     return NextResponse.json({ success: true, balance: newBalance });
   } catch (error) {

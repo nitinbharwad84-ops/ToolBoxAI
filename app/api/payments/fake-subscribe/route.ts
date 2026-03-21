@@ -32,16 +32,21 @@ export async function POST(req: Request) {
       })
       .eq('clerk_id', userId);
 
-    await getServiceSupabase()
+    const { error: txError } = await getServiceSupabase()
       .from('credit_transactions')
       .insert({
         user_id: user.id,
         clerk_id: userId,
         amount: 1000,
-        type: 'granted',
+        type: 'subscription_grant',
         description: `Pro Plan Upgrade (${billingCycle}) - 1000 Credits (Simulated)`,
         balance_after: newBalance
       });
+
+    if (txError) {
+      console.error('Failed to log fake subscription transaction:', txError);
+      throw new Error('Transaction logging failed');
+    }
 
     return NextResponse.json({ success: true, plan: 'pro' });
   } catch (error) {
